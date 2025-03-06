@@ -1,35 +1,47 @@
 import React, { useState, useContext } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Drawer, List, ListItemButton, ListItemText, IconButton, TextField, Box, Collapse } from "@mui/material";
+import {
+  Drawer,
+  List,
+  ListItemButton,
+  ListItemText,
+  IconButton,
+  TextField,
+  Box,
+  Collapse,
+} from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
-import { AppContext } from "../context/AppContext";
+import SearchIcon from "@mui/icons-material/Search";
+import HomeIcon from "@mui/icons-material/Home";
+import ApartmentIcon from "@mui/icons-material/Apartment";
+import PeopleIcon from "@mui/icons-material/People";
+import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import AppContext from "../context/AppContext";
 
 const NavBar = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [openSubMenus, setOpenSubMenus] = useState({});
-  const { dispatch } = useContext(AppContext);
+  const { setSearchQuery } = useContext(AppContext);
 
   const toggleDrawer = () => setIsOpen(!isOpen);
-
   const toggleSubMenu = (menu) => {
-    setOpenSubMenus(prev => ({ ...prev, [menu]: !prev[menu] }));
+    setOpenSubMenus((prev) => ({ ...prev, [menu]: !prev[menu] }));
   };
 
   const handleSearch = (event) => {
-    dispatch({ type: "SET_SEARCH", payload: event.target.value });
+    setSearchQuery(event.target.value);
   };
 
   const menuItems = [
-    {
-      text: "Overview",
-      path: "/overview"
-    },
+    { text: "Overview", path: "/overview", icon: <HomeIcon /> },
     {
       text: "Rentals",
-      path: "/rentals/properties",
+      path: "/rentals",
+      icon: <ApartmentIcon />,
       subItems: [
         { text: "Properties", path: "/rentals/properties" },
         { text: "Units", path: "/rentals/units" },
@@ -37,18 +49,20 @@ const NavBar = () => {
     },
     {
       text: "People",
-      path: "/people/tenants",
+      path: "/people",
+      icon: <PeopleIcon />,
       subItems: [
         { text: "Tenants", path: "/people/tenants" },
         { text: "Owners", path: "/people/owners" },
         { text: "Board Members", path: "/people/board-members" },
       ],
     },
-    { text: "Accounting", path: "/accounting" },
-    { text: "Reports", path: "/reports" },
+    { text: "Accounting", path: "/accounting", icon: <AccountBalanceIcon /> },
+    { text: "Reports", path: "/reports", icon: <AssessmentIcon /> },
     {
       text: "Associations",
-      path: "/associations/properties",
+      path: "/associations",
+      icon: <ApartmentIcon />,
       subItems: [
         { text: "Properties", path: "/associations/properties" },
         { text: "Associations", path: "/associations/associations" },
@@ -58,74 +72,109 @@ const NavBar = () => {
 
   return (
     <>
+      {/* Mobile hamburger icon */}
       <IconButton
         edge="start"
         color="inherit"
-        aria-label="menu"
         onClick={toggleDrawer}
         sx={{
           display: { xs: "block", md: "none" },
           position: "fixed",
-          top: 10,
-          left: 10,
-          zIndex: 1201,
-          backgroundColor: "#4a90e2",
-          color: "white",
-          "&:hover": { backgroundColor: "#357abd" },
+          top: 12,
+          left: 12,
+          zIndex: 1300, // Increased z-index to be above drawer
+          backgroundColor: "#2c3e50",
+          color: "#ecf0f1",
+          "&:hover": { backgroundColor: "#34495e" },
+          borderRadius: 2,
         }}
       >
         <MenuIcon />
       </IconButton>
+
+      {/* Mobile drawer */}
       <Drawer
+        anchor="left"
         variant="temporary"
         open={isOpen}
         onClose={toggleDrawer}
-        ModalProps={{ keepMounted: true }}
+        ModalProps={{
+          keepMounted: true, // Better performance on mobile
+        }}
         sx={{
           display: { xs: "block", md: "none" },
           "& .MuiDrawer-paper": {
-            width: 250,
+            width: 280,
             boxSizing: "border-box",
-            backgroundColor: "#4a90e2",
-            color: "white",
-            position: "fixed",
-            zIndex: 1200,
+            backgroundColor: "#2c3e50",
+            color: "#ecf0f1",
+            borderRight: "none",
+            borderRadius: "0 8px 8px 0",
+            boxShadow: "4px 0 10px rgba(0, 0, 0, 0.1)",
           },
         }}
       >
-        <Box sx={{ width: 250, p: 2 }}>
+        <Box sx={{ p: 2, width: "100%", boxSizing: "border-box", overflow: "hidden" }}>
           <TextField
             fullWidth
             variant="outlined"
             placeholder="Search..."
             onChange={handleSearch}
-            sx={{ mb: 2, backgroundColor: "white", borderRadius: 1 }}
+            InputProps={{ 
+              startAdornment: <SearchIcon sx={{ color: "#2c3e50" }} />,
+              sx: { borderRadius: 4 }
+            }}
+            sx={{ 
+              mb: 2, 
+              backgroundColor: "#ecf0f1", 
+              borderRadius: 4,
+              maxWidth: "100%",
+              "& .MuiOutlinedInput-root": {
+                width: "100%",
+                maxWidth: "100%"
+              }
+            }}
           />
-          <List>
+          <List component="nav" sx={{ width: "100%" }}>
             {menuItems.map((item) => (
               <div key={item.text}>
                 <ListItemButton
                   component={Link}
                   to={item.path}
                   onClick={() => {
-                    if (item.subItems) toggleSubMenu(item.text);
-                    else toggleDrawer();
+                    if (item.subItems) {
+                      toggleSubMenu(item.text);
+                    } else {
+                      setIsOpen(false); // Close drawer when clicking on a non-submenu item
+                    }
                   }}
-                  sx={{ "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.1)" } }}
+                  className={location.pathname.startsWith(item.path) ? "active" : ""}
+                  sx={{ 
+                    padding: "16px 20px", 
+                    "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.1)" },
+                    "&.active": { backgroundColor: "#34495e" }
+                  }}
                 >
+                  {item.icon && <Box sx={{ mr: 2 }}>{item.icon}</Box>}
                   <ListItemText primary={item.text} />
                   {item.subItems && (openSubMenus[item.text] ? <ExpandLess /> : <ExpandMore />)}
                 </ListItemButton>
                 {item.subItems && (
-                  <Collapse in={openSubMenus[item.text] || false} timeout="auto" unmountOnExit>
+                  <Collapse in={openSubMenus[item.text]} timeout="auto" unmountOnExit>
                     <List component="div" disablePadding>
                       {item.subItems.map((subItem) => (
                         <ListItemButton
                           key={subItem.text}
                           component={Link}
                           to={subItem.path}
-                          onClick={toggleDrawer}
-                          sx={{ pl: 4, "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.1)" } }}
+                          onClick={() => setIsOpen(false)} // Close drawer when clicking on submenu item
+                          sx={{ 
+                            pl: 6, 
+                            padding: "14px 20px", 
+                            "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.1)" },
+                            "&.active": { backgroundColor: "#34495e" }
+                          }}
+                          className={location.pathname === subItem.path ? "active" : ""}
                         >
                           <ListItemText primary={subItem.text} />
                         </ListItemButton>
@@ -138,52 +187,85 @@ const NavBar = () => {
           </List>
         </Box>
       </Drawer>
+
+      {/* Desktop sidebar */}
       <Drawer
         variant="permanent"
+        anchor="left"
+        open
         sx={{
-          width: 250,
-          flexShrink: 0,
           display: { xs: "none", md: "block" },
+          width: 280,
+          flexShrink: 0,
+          position: "relative",
+          zIndex: 1000,
           "& .MuiDrawer-paper": {
-            width: 250,
-            boxSizing: "border-box",
-            backgroundColor: "#4a90e2",
-            color: "white",
             position: "relative",
-            zIndex: 1000,
+            width: 280,
+            boxSizing: "border-box",
+            backgroundColor: "#2c3e50",
+            color: "#ecf0f1",
+            borderRight: "none",
+            borderRadius: "0 8px 8px 0",
+            boxShadow: "4px 0 10px rgba(0, 0, 0, 0.1)",
+            height: "100%",
+            overflow: "hidden",
           },
         }}
       >
-        <Box sx={{ width: 250, p: 2 }}>
+        <Box sx={{ p: 3, width: "100%", boxSizing: "border-box", overflow: "hidden" }}>
           <TextField
             fullWidth
             variant="outlined"
             placeholder="Search..."
             onChange={handleSearch}
-            sx={{ mb: 2, backgroundColor: "white", borderRadius: 1 }}
+            InputProps={{ 
+              startAdornment: <SearchIcon sx={{ color: "#2c3e50" }} />,
+              sx: { borderRadius: 4 }
+            }}
+            sx={{ 
+              mb: 2, 
+              backgroundColor: "#ecf0f1", 
+              borderRadius: 4,
+              maxWidth: "100%",
+              "& .MuiOutlinedInput-root": {
+                width: "100%",
+                maxWidth: "100%"
+              }
+            }}
           />
-          <List>
+          <List component="nav" sx={{ width: "100%" }}>
             {menuItems.map((item) => (
               <div key={item.text}>
                 <ListItemButton
                   component={Link}
                   to={item.path}
-                  sx={{ "&.active, &:hover": { backgroundColor: "#357abd" } }}
                   className={location.pathname.startsWith(item.path) ? "active" : ""}
                   onClick={() => item.subItems && toggleSubMenu(item.text)}
+                  sx={{ 
+                    padding: "16px 20px", 
+                    "&.active": { backgroundColor: "#34495e" },
+                    "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.1)" } 
+                  }}
                 >
+                  {item.icon && <Box sx={{ mr: 2 }}>{item.icon}</Box>}
                   <ListItemText primary={item.text} />
                   {item.subItems && (openSubMenus[item.text] ? <ExpandLess /> : <ExpandMore />)}
                 </ListItemButton>
                 {item.subItems && (
-                  <Collapse in={openSubMenus[item.text] || false} timeout="auto" unmountOnExit>
+                  <Collapse in={openSubMenus[item.text]} timeout="auto" unmountOnExit>
                     <List component="div" disablePadding>
                       {item.subItems.map((subItem) => (
                         <ListItemButton
                           key={subItem.text}
                           component={Link}
                           to={subItem.path}
-                          sx={{ pl: 4, "&.active, &:hover": { backgroundColor: "#357abd" } }}
+                          sx={{ 
+                            pl: 6, 
+                            padding: "14px 20px", 
+                            "&.active": { backgroundColor: "#34495e" },
+                            "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.1)" } 
+                          }}
                           className={location.pathname === subItem.path ? "active" : ""}
                         >
                           <ListItemText primary={subItem.text} />

@@ -1,27 +1,23 @@
 import React, { useContext, useState } from 'react';
-import { Box, TextField, MenuItem, Button, Grid, Typography } from '@mui/material';
+import { Box, Grid, Paper, Typography, TextField, Button, MenuItem } from '@mui/material'; // Added MenuItem
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import AppContext from '../context/AppContext'; // Import as default
-import PropertyCard from '../components/PropertyCard';
 import { useSnackbar } from 'notistack';
 
-const RentalsProperties = () => {
+const Dashboard = () => {
   const { state, updateData } = useContext(AppContext);
   const { enqueueSnackbar } = useSnackbar();
-  const [filter, setFilter] = useState('all');
-  const [sortOrder, setSortOrder] = useState('asc');
   const [newProperty, setNewProperty] = useState({
     name: '',
     address: '',
     status: 'active',
   });
 
-  const filteredProperties = state.properties
-    .filter((property) => filter === 'all' || property.status === filter)
-    .sort((a, b) =>
-      sortOrder === 'asc'
-        ? a.name.localeCompare(b.name)
-        : b.name.localeCompare(a.name)
-    );
+  const data = [
+    { name: 'Properties', value: state.properties.length },
+    { name: 'Transactions', value: state.transactions.length },
+    { name: 'Accounts', value: state.accounts.length },
+  ];
 
   const handleAddProperty = async () => {
     try {
@@ -36,31 +32,28 @@ const RentalsProperties = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Properties
+        Dashboard Overview
       </Typography>
-      <Box sx={{ mb: 2 }}>
-        <TextField
-          select
-          label="Filter by Status"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          sx={{ mr: 2, width: 200 }}
-        >
-          <MenuItem value="all">All</MenuItem>
-          <MenuItem value="active">Active</MenuItem>
-          <MenuItem value="inactive">Inactive</MenuItem>
-        </TextField>
-        <Button onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}>
-          Sort by Name ({sortOrder})
-        </Button>
-      </Box>
-      <Grid container spacing={2}>
-        {filteredProperties.map((property) => (
-          <Grid item xs={12} sm={6} md={4} key={property.id}>
-            <PropertyCard property={property} />
+      <Grid container spacing={3}>
+        {data.map((item) => (
+          <Grid item xs={12} sm={4} key={item.name}>
+            <Paper sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="h6">{item.name}</Typography>
+              <Typography variant="h4">{item.value}</Typography>
+            </Paper>
           </Grid>
         ))}
       </Grid>
+      <Box sx={{ mt: 4 }}>
+        <BarChart width={600} height={300} data={data}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Bar dataKey="value" fill="#4a90e2" />
+        </BarChart>
+      </Box>
       <Box sx={{ mt: 4 }}>
         <Typography variant="h6" gutterBottom>
           Add New Property
@@ -95,4 +88,4 @@ const RentalsProperties = () => {
   );
 };
 
-export default RentalsProperties;
+export default Dashboard;

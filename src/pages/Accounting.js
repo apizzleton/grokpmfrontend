@@ -1,128 +1,256 @@
 import React, { useContext, useState } from 'react';
-import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, MenuItem } from '@mui/material';
-import { AppContext } from '../context/AppContext';
-import Pagination from '@mui/material/Pagination';
+import { Box, Typography, Table, TableBody, TableCell, TableHead, TableRow, TextField, MenuItem, Button } from '@mui/material';
+import { PieChart, Pie, Cell, Legend, Tooltip } from 'recharts';
+import AppContext from '../context/AppContext'; // Import as default
+import axios from 'axios';
+import { useSnackbar } from 'notistack';
 
 const Accounting = () => {
-  const { state, dispatch } = useContext(AppContext);
-  const { payments, tenants, searchQuery } = state;
-  const [open, setOpen] = useState(false);
-  const [editPayment, setEditPayment] = useState(null);
-  const [formData, setFormData] = useState({ amount: '', payment_date: '', status: '', tenant_id: '' });
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 5;
+  const { state, updateData } = useContext(AppContext);
+  const { enqueueSnackbar } = useSnackbar();
+  const [newTransaction, setNewTransaction] = useState({
+    amount: '',
+    date: '',
+    description: '',
+    accountId: '',
+    transactionTypeId: '',
+    propertyId: '',
+  });
 
-  const safePayments = Array.isArray(payments) ? [...payments] : [];
-  const safeTenants = Array.isArray(tenants) ? [...tenants].sort((a, b) => a.name.localeCompare(b.name)) : [];
-  console.log('Payments in Accounting:', safePayments);
-  console.log('Tenants for dropdown:', safeTenants);
+  const income = state.transactions
+    .filter((t) => t.transactionType.name === 'Income')
+    .reduce((acc, t) => acc + parseFloat(t.amount), 0);
+  const expenses = state.transactions
+    .filter((t) => t.transactionType.name === 'Expense')
+    .reduce((acc, t) => acc + parseFloat(t.amount), 0);
 
-  const handleClickOpen = (payment = null) => {
-    setEditPayment(payment);
-    setFormData(payment || { amount: '', payment_date: '', status: '', tenant_id: '' });
-    setOpen(true);
-  };
+  const chartData = [
+    { name: 'Income', value: income },
+    { name: 'Expenses', value: expenses },
+  ];
+  const COLORS = ['#0088FE', '#FF8042'];
 
-  const handleClose = () => {
-    setOpen(false);
-    setEditPayment(null);
-  };
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSave = async () => {
+  const handleAddTransaction = async () => {
     try {
-      const method = editPayment ? 'PUT' : 'POST';
-      const url = `https://grokpm-backend.onrender.com/payments${editPayment ? `/${editPayment.id}` : ''}`;
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+      const response = await updateData('transactions', {
+        ...newTransaction,
+        date: new Date(newTransaction.date).toISOString().split('T')[0],
       });
-      if (!response.ok) throw new Error('Failed to save payment');
-      const data = await response.json();
-      dispatch({ type: 'SET_DATA', payload: { payments: editPayment ? safePayments.map(p => p.id === data.id ? data : p) : [...safePayments, data] } });
-      handleClose();
-    } catch (err) {
-      console.error('Save error:', err);
+      enqueueSnackbar('Transaction added successfully', { variant: 'success' });
+      setNewTransaction({ amount: '', date: '', description: '', accountId: '', transactionTypeId: '', propertyId: '' });
+    } catch (error) {
+      enqueueSnackbar('Failed to add transaction', { variant: 'error' });
     }
   };
-
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this payment?')) {
-      try {
-        const response = await fetch(`https://grokpm-backend.onrender.com/payments/${id}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error('Failed to delete payment');
-        dispatch({ type: 'SET_DATA', payload: { payments: safePayments.filter(p => p.id !== id) } });
-      } catch (err) {
-        console.error('Delete error:', err);
-      }
-    }
-  };
-
-  const filteredPayments = safePayments.filter(payment =>
-    (payment.amount?.toString().includes(searchQuery) ||
-     payment.status?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     payment.payment_date?.includes(searchQuery))
-  );
-
-  const paginatedPayments = filteredPayments.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   return (
     <Box sx={{ p: 3 }}>
-      <h2>Accounting</h2>
-      {safePayments.length > 0 ? (
-        <Grid container spacing={2}>
-          {paginatedPayments.map((payment, index) => (
-            payment && payment.id ? (
-              <Grid item xs={12} sm={6} md={4} key={payment.id || `payment-${index}`}>
-                <Box sx={{ border: '1px solid #ccc', p: 2, mb: 2, borderRadius: 4, boxShadow: 1, '&:hover': { boxShadow: 3 } }}>
-                  <p>Amount: ${payment.amount || 0} - Date: {payment.payment_date || 'N/A'}</p>
-                  <p>Status: {payment.status || 'N/A'} - Tenant: {safeTenants.find(t => t.id === payment.tenant_id)?.name || 'N/A'}</p>
-                  <Box sx={{ mt: 1 }}>
-                    <Button sx={{ mr: 1, backgroundColor: '#4a90e2', color: 'white', '&:hover': { backgroundColor: '#357abd' } }} onClick={() => handleClickOpen(payment)}>Edit</Button>
-                    <Button sx={{ backgroundColor: '#e74c3c', color: 'white', '&:hover': { backgroundColor: '#c0392b' } }} onClick={() => handleDelete(payment.id)}>Delete</Button>
-                  </Box>
-                </Box>
-              </Grid>
-            ) : null
+      <Typography variant="h4" gutterBottom>
+        Accounting
+      </Typography>
+
+      {/* Chart */}
+      <PieChart width={400} height={400}>
+        <Pie data={chartData} cx={200} cy={200} labelLine={false} outerRadius={80} dataKey="value">
+          {chartData.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
-        </Grid>
-      ) : (
-        <p>No payments available.</p>
-      )}
-      <Pagination count={Math.ceil(filteredPayments.length / itemsPerPage)} page={page} onChange={(e, value) => setPage(value)} sx={{ mt: 2 }} />
-      <Button variant="contained" sx={{ mt: 2, backgroundColor: '#4a90e2', '&:hover': { backgroundColor: '#357abd' } }} onClick={() => handleClickOpen()}>
-        Add Payment
-      </Button>
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>{editPayment ? 'Edit Payment' : 'Add Payment'}</DialogTitle>
-        <DialogContent>
-          <TextField autoFocus margin="dense" name="amount" label="Amount" type="number" value={formData.amount} onChange={handleChange} fullWidth />
-          <TextField margin="dense" name="payment_date" label="Payment Date" value={formData.payment_date} onChange={handleChange} fullWidth />
-          <TextField margin="dense" name="status" label="Status" value={formData.status} onChange={handleChange} fullWidth />
+        </Pie>
+        <Tooltip />
+        <Legend />
+      </PieChart>
+
+      {/* Transaction Form */}
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h6" gutterBottom>
+          Add New Transaction
+        </Typography>
+        <TextField
+          label="Amount"
+          value={newTransaction.amount}
+          onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
+          type="number"
+          sx={{ mr: 2, mt: 2 }}
+        />
+        <TextField
+          label="Date"
+          type="date"
+          value={newTransaction.date}
+          onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })}
+          sx={{ mr: 2, mt: 2 }}
+          InputLabelProps={{ shrink: true }}
+        />
+        <TextField
+          label="Description"
+          value={newTransaction.description}
+          onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
+          sx={{ mr: 2, mt: 2 }}
+        />
+        <TextField
+          select
+          label="Account"
+          value={newTransaction.accountId}
+          onChange={(e) => setNewTransaction({ ...newTransaction, accountId: e.target.value })}
+          sx={{ mr: 2, mt: 2, width: 200 }}
+        >
+          {state.accounts.map((acc) => (
+            <MenuItem key={acc.id} value={acc.id}>
+              {acc.name}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select
+          label="Transaction Type"
+          value={newTransaction.transactionTypeId}
+          onChange={(e) => setNewTransaction({ ...newTransaction, transactionTypeId: e.target.value })}
+          sx={{ mr: 2, mt: 2, width: 200 }}
+        >
+          {state.transactionTypes.map((type) => (
+            <MenuItem key={type.id} value={type.id}>
+              {type.name}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select
+          label="Property"
+          value={newTransaction.propertyId}
+          onChange={(e) => setNewTransaction({ ...newTransaction, propertyId: e.target.value })}
+          sx={{ mr: 2, mt: 2, width: 200 }}
+        >
+          {state.properties.map((prop) => (
+            <MenuItem key={prop.id} value={prop.id}>
+              {prop.name}
+            </MenuItem>
+          ))}
+        </TextField>
+        <Button onClick={handleAddTransaction} variant="contained" sx={{ mt: 2 }}>
+          Add Transaction
+        </Button>
+      </Box>
+
+      {/* Transactions Table with Inline Editing */}
+      <Table sx={{ mt: 4 }}>
+        <TableHead>
+          <TableRow>
+            <TableCell>Amount</TableCell>
+            <TableCell>Date</TableCell>
+            <TableCell>Description</TableCell>
+            <TableCell>Account</TableCell>
+            <TableCell>Type</TableCell>
+            <TableCell>Property</TableCell>
+            <TableCell>Actions</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {state.transactions.map((t) => (
+            <TransactionRow key={t.id} transaction={t} updateData={updateData} enqueueSnackbar={enqueueSnackbar} />
+          ))}
+        </TableBody>
+      </Table>
+    </Box>
+  );
+};
+
+const TransactionRow = ({ transaction, updateData, enqueueSnackbar }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTransaction, setEditedTransaction] = useState({
+    amount: transaction.amount,
+    date: new Date(transaction.date).toISOString().split('T')[0],
+    description: transaction.description,
+    accountId: transaction.accountId,
+    transactionTypeId: transaction.transactionTypeId,
+    propertyId: transaction.propertyId,
+  });
+
+  const handleSave = async () => {
+    try {
+      await updateData(`transactions/${transaction.id}`, editedTransaction, 'put');
+      enqueueSnackbar('Transaction updated successfully', { variant: 'success' });
+      setIsEditing(false);
+    } catch (error) {
+      enqueueSnackbar('Failed to update transaction', { variant: 'error' });
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <TableRow>
+        <TableCell>
+          <TextField
+            value={editedTransaction.amount}
+            onChange={(e) => setEditedTransaction({ ...editedTransaction, amount: e.target.value })}
+            type="number"
+          />
+        </TableCell>
+        <TableCell>
+          <TextField
+            value={editedTransaction.date}
+            onChange={(e) => setEditedTransaction({ ...editedTransaction, date: e.target.value })}
+            type="date"
+            InputLabelProps={{ shrink: true }}
+          />
+        </TableCell>
+        <TableCell>
+          <TextField
+            value={editedTransaction.description}
+            onChange={(e) => setEditedTransaction({ ...editedTransaction, description: e.target.value })}
+          />
+        </TableCell>
+        <TableCell>
           <TextField
             select
-            margin="dense"
-            name="tenant_id"
-            label="Tenant"
-            value={formData.tenant_id}
-            onChange={handleChange}
-            fullWidth
+            value={editedTransaction.accountId}
+            onChange={(e) => setEditedTransaction({ ...editedTransaction, accountId: e.target.value })}
           >
-            {safeTenants.map((tenant) => (
-              <MenuItem key={tenant.id} value={tenant.id}>{tenant.name}</MenuItem>
-            ))}
+            { /* Accounts would need to be passed or accessed via context */ }
           </TextField>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose} sx={{ color: '#757575' }}>Cancel</Button>
-          <Button onClick={handleSave} sx={{ backgroundColor: '#4a90e2', color: 'white', '&:hover': { backgroundColor: '#357abd' } }}>Save</Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+        </TableCell>
+        <TableCell>
+          <TextField
+            select
+            value={editedTransaction.transactionTypeId}
+            onChange={(e) => setEditedTransaction({ ...editedTransaction, transactionTypeId: e.target.value })}
+          >
+            { /* Transaction types would need to be passed or accessed via context */ }
+          </TextField>
+        </TableCell>
+        <TableCell>
+          <TextField
+            select
+            value={editedTransaction.propertyId}
+            onChange={(e) => setEditedTransaction({ ...editedTransaction, propertyId: e.target.value })}
+          >
+            { /* Properties would need to be passed or accessed via context */ }
+          </TextField>
+        </TableCell>
+        <TableCell>
+          <Button onClick={handleSave} variant="contained" color="primary">
+            Save
+          </Button>
+          <Button onClick={() => setIsEditing(false)} variant="outlined" color="secondary" sx={{ ml: 1 }}>
+            Cancel
+          </Button>
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  return (
+    <TableRow>
+      <TableCell>{transaction.amount}</TableCell>
+      <TableCell>{new Date(transaction.date).toLocaleDateString()}</TableCell>
+      <TableCell>{transaction.description}</TableCell>
+      <TableCell>{transaction.account.name}</TableCell>
+      <TableCell>{transaction.transactionType.name}</TableCell>
+      <TableCell>{transaction.property.name}</TableCell>
+      <TableCell>
+        <Button onClick={() => setIsEditing(true)} variant="outlined" color="primary">
+          Edit
+        </Button>
+      </TableCell>
+    </TableRow>
   );
 };
 

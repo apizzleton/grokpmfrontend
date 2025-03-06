@@ -1,19 +1,18 @@
 import React from 'react';
-import ReactDOM from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import App from './App';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import './index.css';
+import AppContext, { AppProvider } from './context/AppContext';
+import { SnackbarProvider } from 'notistack';
 
-const theme = createTheme({
-  palette: {
-    primary: { main: '#007bff' },
-    secondary: { main: '#6c757d' },
-  },
-});
+const container = document.getElementById('root');
+const root = createRoot(container);
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <ThemeProvider theme={theme}>
-    <App />
-  </ThemeProvider>
+  <React.StrictMode>
+    <AppProvider>
+      <SnackbarProvider maxSnack={3}>
+        <App />
+      </SnackbarProvider>
+    </AppProvider>
+  </React.StrictMode>
 );

@@ -1,138 +1,36 @@
-import React, { useEffect, useReducer } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { Box, CircularProgress } from '@mui/material';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import { SnackbarProvider } from 'notistack';
-import NavBar from './components/NavBar';
+import { Box } from '@mui/material';
+import Dashboard from './pages/Dashboard';
 import RentalsProperties from './pages/RentalsProperties';
-import RentalsUnits from './pages/RentalsUnits';
-import PeopleTenants from './pages/PeopleTenants';
-import PeopleOwners from './pages/PeopleOwners';
-import PeopleBoardMembers from './pages/PeopleBoardMembers';
+import Units from './pages/Units';
 import Accounting from './pages/Accounting';
-import Reports from './pages/Reports';
-import AssociationsProperties from './pages/AssociationsProperties';
-import AssociationsAssociations from './pages/AssociationsAssociations';
-import TenantPage from './pages/TenantPage';
-import Overview from './pages/Overview';
-import { AppContext } from './context/AppContext';
-import { theme } from './theme/Theme';
+import NavBar from './components/NavBar'; // Ensure NavBar is imported
 
-// Initial state for the application
-const initialState = {
-  tenants: [],
-  properties: [],
-  units: [],
-  payments: [],
-  maintenance: [],
-  associations: [],
-  owners: [],
-  boardMembers: [],
-  searchQuery: '',
-  filter: {},
-};
-
-// Reducer function to manage state updates
-const reducer = (state, action) => {
-  switch (action.type) {
-    case 'SET_DATA':
-      console.log('Setting data:', action.payload);
-      return { ...state, ...action.payload };
-    case 'SET_SEARCH':
-      return { ...state, searchQuery: action.payload };
-    case 'SET_FILTER':
-      return { ...state, filter: action.payload };
-    default:
-      return state;
-  }
-};
-
-// Main App component
 function App() {
-  const [state, dispatch] = useReducer(reducer, initialState);
-  const { properties, units, tenants, payments, maintenance, associations, owners, boardMembers } = state;
-
-  // Fetch data when the component mounts
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  // Async function to fetch data from the backend
-  const fetchData = async () => {
-    try {
-      console.log('Starting fetch...');
-      const endpoints = ['tenants', 'properties', 'units', 'payments', 'maintenance', 'associations', 'owners', 'board-members'];
-      const responses = await Promise.all(
-        endpoints.map(endpoint => fetch(`https://grokpm-backend.onrender.com/${endpoint}`))
-      );
-      console.log('Responses received:', responses.map(res => ({ url: res.url, status: res.status })));
-      const data = await Promise.all(
-        responses.map(res => {
-          if (!res.ok) throw new Error(`Fetch failed for ${res.url}: ${res.status}`);
-          return res.json();
-        })
-      );
-      console.log('Fetched data:', data);
-      dispatch({
-        type: 'SET_DATA',
-        payload: {
-          tenants: data[0] || [],
-          properties: data[1] || [],
-          units: data[2] || [],
-          payments: data[3] || [],
-          maintenance: data[4] || [],
-          associations: data[5] || [],
-          owners: data[6] || [],
-          boardMembers: data[7] || [],
-        },
-      });
-    } catch (err) {
-      console.error('Fetch error:', err);
-    }
-  };
-
-  // Show loading spinner if key data is not yet loaded
-  if (!properties.length && !tenants.length && !units.length) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  // Render the application with context, theme, and routing
   return (
-    <AppContext.Provider value={{ state, dispatch }}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <SnackbarProvider maxSnack={3}>
-          <Router>
-            <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-              <NavBar />
-              <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                <Box sx={{ flexGrow: 1, overflow: 'auto', p: 3 }}>
-                  <Routes>
-                    <Route path="/" element={<Navigate to="/overview" replace />} />
-                    <Route path="/overview" element={<Overview />} />
-                    <Route path="/rentals/properties" element={<RentalsProperties />} />
-                    <Route path="/rentals/units" element={<RentalsUnits />} />
-                    <Route path="/people/tenants" element={<PeopleTenants />} />
-                    <Route path="/people/owners" element={<PeopleOwners />} />
-                    <Route path="/people/board-members" element={<PeopleBoardMembers />} />
-                    <Route path="/accounting" element={<Accounting />} />
-                    <Route path="/reports" element={<Reports />} />
-                    <Route path="/associations/properties" element={<AssociationsProperties />} />
-                    <Route path="/associations/associations" element={<AssociationsAssociations />} />
-                    <Route path="/tenant/:id" element={<TenantPage />} />
-                    <Route path="*" element={<Navigate to="/overview" />} />
-                  </Routes>
-                </Box>
-              </Box>
-            </Box>
-          </Router>
-        </SnackbarProvider>
-      </ThemeProvider>
-    </AppContext.Provider>
+    <Router>
+      <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+        <NavBar /> {/* Navigation bar remains on all pages */}
+        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ flexGrow: 1, overflow: 'auto', p: 3 }}>
+            <Routes>
+              <Route path="/overview" element={<Dashboard />} /> {/* Dashboard for /overview */}
+              <Route path="/rentals/properties" element={<RentalsProperties />} /> {/* Rentals Properties page */}
+              <Route path="/rentals/units" element={<Units />} /> {/* Units page */}
+              <Route path="/accounting" element={<Accounting />} /> {/* Accounting page */}
+              <Route path="/people/tenants" element={<Units />} /> {/* Placeholder for People Tenants (using Units as a temp placeholder) */}
+              <Route path="/people/owners" element={<Units />} /> {/* Placeholder for People Owners */}
+              <Route path="/people/board-members" element={<Units />} /> {/* Placeholder for People Board Members */}
+              <Route path="/reports" element={<Units />} /> {/* Placeholder for Reports */}
+              <Route path="/associations/properties" element={<Units />} /> {/* Placeholder for Associations Properties */}
+              <Route path="/associations/associations" element={<Units />} /> {/* Placeholder for Associations Associations */}
+              <Route path="*" element={<Navigate to="/overview" replace />} /> {/* Default to Overview for unmatched routes */}
+            </Routes>
+          </Box>
+        </Box>
+      </Box>
+    </Router>
   );
 }
 
