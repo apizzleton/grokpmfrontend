@@ -2,6 +2,12 @@
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
+// Create an Axios instance with base URL for cleaner code
+const api = axios.create({
+  baseURL: 'https://grokpmbackend_new.onrender.com/api',
+  timeout: 10000, // Add timeout to prevent hanging requests
+});
+
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
@@ -23,67 +29,104 @@ export const AppProvider = ({ children }) => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [propRes, unitRes, tenantRes, ownerRes, assocRes, boardRes, accRes, accTypeRes, transRes, transTypeRes, payRes] = await Promise.all([
-          axios.get('https://grokpmbackend_new.onrender.com/api/properties'),
-          axios.get('https://grokpmbackend_new.onrender.com/api/units'),
-          axios.get('https://grokpmbackend_new.onrender.com/api/tenants'),
-          axios.get('https://grokpmbackend_new.onrender.com/api/owners'),
-          axios.get('https://grokpmbackend_new.onrender.com/api/associations'),
-          axios.get('https://grokpmbackend_new.onrender.com/api/board-members'),
-          axios.get('https://grokpmbackend_new.onrender.com/api/accounts'),
-          axios.get('https://grokpmbackend_new.onrender.com/api/account-types'),
-          axios.get('https://grokpmbackend_new.onrender.com/api/transactions'),
-          axios.get('https://grokpmbackend_new.onrender.com/api/transaction-types'),
-          axios.get('https://grokpmbackend_new.onrender.com/api/payments'),
-        ]);
-        setProperties(propRes.data);
-        setUnits(unitRes.data);
-        setTenants(tenantRes.data);
-        setOwners(ownerRes.data);
-        setAssociations(assocRes.data);
-        setBoardMembers(boardRes.data);
-        setAccounts(accRes.data);
-        setAccountTypes(accTypeRes.data);
-        setTransactions(transRes.data);
-        setTransactionTypes(transTypeRes.data);
-        setPayments(payRes.data);
+        const endpoints = [
+          'properties',
+          'units',
+          'tenants',
+          'owners',
+          'associations',
+          'board-members',
+          'accounts',
+          'account-types',
+          'transactions',
+          'transaction-types',
+          'payments',
+        ];
+
+        const responses = await Promise.all(
+          endpoints.map(endpoint => api.get(`/${endpoint}`))
+        );
+
+        // Map responses to state setters
+        const setters = [
+          setProperties,
+          setUnits,
+          setTenants,
+          setOwners,
+          setAssociations,
+          setBoardMembers,
+          setAccounts,
+          setAccountTypes,
+          setTransactions,
+          setTransactionTypes,
+          setPayments,
+        ];
+
+        responses.forEach((res, index) => setters[index](res.data));
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching data:', error.response?.data || error.message);
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
   }, []);
 
   const updateData = async (endpoint, data, method = 'post') => {
     try {
-      const url = `https://grokpmbackend_new.onrender.com/api/${endpoint.replace(/^transactions\//, '')}`;
-      const response = await axios[method](url, data);
-      if (endpoint.startsWith('properties')) setProperties([...properties, response.data]);
-      if (endpoint.startsWith('units')) setUnits([...units, response.data]);
-      if (endpoint.startsWith('tenants')) setTenants([...tenants, response.data]);
-      if (endpoint.startsWith('owners')) setOwners([...owners, response.data]);
-      if (endpoint.startsWith('associations')) setAssociations([...associations, response.data]);
-      if (endpoint.startsWith('board-members')) setBoardMembers([...boardMembers, response.data]);
-      if (endpoint.startsWith('accounts')) setAccounts([...accounts, response.data]);
-      if (endpoint.startsWith('account-types')) setAccountTypes([...accountTypes, response.data]);
-      if (endpoint.startsWith('transactions')) setTransactions([...transactions, response.data]);
-      if (endpoint.startsWith('transaction-types')) setTransactionTypes([...transactionTypes, response.data]);
-      if (endpoint.startsWith('payments')) setPayments([...payments, response.data]);
+      const cleanEndpoint = endpoint.replace(/^transactions\//, ''); // Handle nested transaction endpoints if any
+      const response = await api[method](`/${cleanEndpoint}`, data);
+
+      // Update state based on endpoint
+      const stateMap = {
+        'properties': setProperties,
+        'units': setUnits,
+        'tenants': setTenants,
+        'owners': setOwners,
+        'associations': setAssociations,
+        'board-members': setBoardMembers,
+        'accounts': setAccounts,
+        'account-types': setAccountTypes,
+        'transactions': setTransactions,
+        'transaction-types': setTransactionTypes,
+        'payments': setPayments,
+      };
+
+      const setter = stateMap[cleanEndpoint];
+      if (setter) {
+        setter(prev => [...prev, response.data]);
+      }
+
       return response.data;
     } catch (error) {
-      console.error(`Error updating ${endpoint}:`, error);
+      console.error(`Error updating ${endpoint}:`, error.response?.data || error.message);
       throw error;
     }
   };
 
   return (
-    <AppContext.Provider value={{
-      state: { properties, units, tenants, owners, associations, boardMembers, accounts, accountTypes, transactions, transactionTypes, payments, searchQuery, loading },
-      setSearchQuery,
-      updateData
-    }}>
+    <AppContext.Provider
+      value={{
+        state: {
+          properties,
+          units,
+          tenants,
+          owners,
+          associations,
+          boardMembers,
+          accounts,
+          accountTypes,
+          transactions,
+          transactionTypes,
+          payments,
+          searchQuery,
+          loading,
+        },
+        setSearchQuery,
+        updateData,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );
