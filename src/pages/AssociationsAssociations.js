@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, MenuItem } from '@mui/material';
-import { AppContext } from '../context/AppContext';
+import AppContext from '../context/AppContext';
 import Pagination from '@mui/material/Pagination';
 
 const AssociationsAssociations = () => {
