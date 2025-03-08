@@ -1,15 +1,12 @@
-// C:\Users\AnthonyParadiso\Desktop\grokPMApp\frontend\src\context\AppContext.js
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Create an Axios instance with base URL for cleaner code
 const api = axios.create({
-  baseURL: 'https://grokpmbackend-new.onrender.com/api', // Hyphen
-  timeout: 10000,
+  baseURL: 'https://grokpmbackend-new.onrender.com/api',
+  timeout: 10000, // 10-second timeout
 });
 
-const AppContext = createContext();
-
+// First export of AppProvider
 export const AppProvider = ({ children }) => {
   const [properties, setProperties] = useState([]);
   const [units, setUnits] = useState([]);
@@ -44,10 +41,12 @@ export const AppProvider = ({ children }) => {
         ];
 
         const responses = await Promise.all(
-          endpoints.map(endpoint => api.get(`/${endpoint}`))
+          endpoints.map(endpoint => api.get(`/${endpoint}`).catch(error => {
+            console.error(`Failed to fetch ${endpoint}:`, error.message);
+            return { data: [] }; // Return empty array on failure
+          }))
         );
 
-        // Map responses to state setters
         const setters = [
           setProperties,
           setUnits,
@@ -64,7 +63,7 @@ export const AppProvider = ({ children }) => {
 
         responses.forEach((res, index) => setters[index](res.data));
       } catch (error) {
-        console.error('Error fetching data:', error.response?.data || error.message);
+        console.error('Error fetching data:', error.message);
       } finally {
         setLoading(false);
       }
@@ -75,10 +74,9 @@ export const AppProvider = ({ children }) => {
 
   const updateData = async (endpoint, data, method = 'post') => {
     try {
-      const cleanEndpoint = endpoint.replace(/^transactions\//, ''); // Handle nested transaction endpoints if any
+      const cleanEndpoint = endpoint.replace(/^transactions\//, '');
       const response = await api[method](`/${cleanEndpoint}`, data);
 
-      // Update state based on endpoint
       const stateMap = {
         'properties': setProperties,
         'units': setUnits,
@@ -131,5 +129,10 @@ export const AppProvider = ({ children }) => {
     </AppContext.Provider>
   );
 };
+
+const AppContext = createContext();
+
+// Remove this duplicate export
+// export { AppProvider }; <- This line should be removed
 
 export default AppContext;
