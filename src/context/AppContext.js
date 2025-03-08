@@ -4,8 +4,8 @@ import axios from 'axios';
 
 // Create an Axios instance with base URL for cleaner code
 const api = axios.create({
-  baseURL: 'https://grokpmbackend_new.onrender.com/api',
-  timeout: 10000, // Add timeout to prevent hanging requests
+  baseURL: 'https://grokpmbackend-new.onrender.com/api', // Hyphen
+  timeout: 10000,
 });
 
 const AppContext = createContext();
