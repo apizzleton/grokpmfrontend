@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { Box, Typography, Table, TableBody, TableCell, TableHead, TableRow, TextField, MenuItem, Button } from '@mui/material';
 import { PieChart, Pie, Cell, Legend, Tooltip } from 'recharts';
-import AppContext from '../context/AppContext'; // Import as default
+import AppContext from '../context/AppContext';
 import axios from 'axios';
 import { useSnackbar } from 'notistack';
 
@@ -17,11 +17,23 @@ const Accounting = () => {
     propertyId: '',
   });
 
+  // Check if transactions are loaded; if not, show a loading message
+  if (!state.transactions) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          Accounting
+        </Typography>
+        <Typography>Loading transactions...</Typography>
+      </Box>
+    );
+  }
+
   const income = state.transactions
-    .filter((t) => t.transactionType.name === 'Income')
+    .filter((t) => t.transactionType && t.transactionType.name === 'Income')
     .reduce((acc, t) => acc + parseFloat(t.amount), 0);
   const expenses = state.transactions
-    .filter((t) => t.transactionType.name === 'Expense')
+    .filter((t) => t.transactionType && t.transactionType.name === 'Expense')
     .reduce((acc, t) => acc + parseFloat(t.amount), 0);
 
   const chartData = [
@@ -204,7 +216,8 @@ const TransactionRow = ({ transaction, updateData, enqueueSnackbar }) => {
             value={editedTransaction.accountId}
             onChange={(e) => setEditedTransaction({ ...editedTransaction, accountId: e.target.value })}
           >
-            { /* Accounts would need to be passed or accessed via context */ }
+            {/* Ideally, fetch accounts from context; leaving as placeholder for now */}
+            {/* You may need to pass state.accounts as a prop or access via context */}
           </TextField>
         </TableCell>
         <TableCell>
@@ -213,7 +226,7 @@ const TransactionRow = ({ transaction, updateData, enqueueSnackbar }) => {
             value={editedTransaction.transactionTypeId}
             onChange={(e) => setEditedTransaction({ ...editedTransaction, transactionTypeId: e.target.value })}
           >
-            { /* Transaction types would need to be passed or accessed via context */ }
+            {/* Ideally, fetch transactionTypes from context; leaving as placeholder */}
           </TextField>
         </TableCell>
         <TableCell>
@@ -222,7 +235,7 @@ const TransactionRow = ({ transaction, updateData, enqueueSnackbar }) => {
             value={editedTransaction.propertyId}
             onChange={(e) => setEditedTransaction({ ...editedTransaction, propertyId: e.target.value })}
           >
-            { /* Properties would need to be passed or accessed via context */ }
+            {/* Ideally, fetch properties from context; leaving as placeholder */}
           </TextField>
         </TableCell>
         <TableCell>
@@ -242,9 +255,9 @@ const TransactionRow = ({ transaction, updateData, enqueueSnackbar }) => {
       <TableCell>{transaction.amount}</TableCell>
       <TableCell>{new Date(transaction.date).toLocaleDateString()}</TableCell>
       <TableCell>{transaction.description}</TableCell>
-      <TableCell>{transaction.account.name}</TableCell>
-      <TableCell>{transaction.transactionType.name}</TableCell>
-      <TableCell>{transaction.property.name}</TableCell>
+      <TableCell>{transaction.account ? transaction.account.name : 'N/A'}</TableCell>
+      <TableCell>{transaction.transactionType ? transaction.transactionType.name : 'N/A'}</TableCell>
+      <TableCell>{transaction.property ? transaction.property.name : 'N/A'}</TableCell>
       <TableCell>
         <Button onClick={() => setIsEditing(true)} variant="outlined" color="primary">
           Edit
