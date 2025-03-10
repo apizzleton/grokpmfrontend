@@ -13,7 +13,17 @@ const PeopleOwners = () => {
   const itemsPerPage = 5;
 
   const safeOwners = Array.isArray(owners) ? [...owners] : [];
-  const safeProperties = Array.isArray(properties) ? [...properties].sort((a, b) => a.address.localeCompare(b.address)) : [];
+  const safeProperties = Array.isArray(properties) ? [...properties].sort((a, b) => {
+    const addrA = a.addresses?.find(addr => addr.is_primary)?.street || '';
+    const addrB = b.addresses?.find(addr => addr.is_primary)?.street || '';
+    return addrA.localeCompare(addrB);
+  }) : [];
+
+  const getPropertyAddress = (property) => {
+    const primaryAddress = property?.addresses?.find(addr => addr.is_primary);
+    return primaryAddress ? `${primaryAddress.street}, ${primaryAddress.city}` : 'N/A';
+  };
+
   console.log('Owners in PeopleOwners:', safeOwners);
   console.log('Properties for dropdown:', safeProperties);
 
@@ -79,7 +89,7 @@ const PeopleOwners = () => {
               <Grid item xs={12} sm={6} md={4} key={owner.id || `owner-${index}`}>
                 <Box sx={{ border: '1px solid #ccc', p: 2, mb: 2, borderRadius: 4, boxShadow: 1, '&:hover': { boxShadow: 3 } }}>
                   <p>Name: {owner.name || 'N/A'} - Email: {owner.email || 'N/A'}</p>
-                  <p>Phone: {owner.phone || 'N/A'} - Property: {safeProperties.find(p => p.id === owner.property_id)?.address || 'N/A'}</p>
+                  <p>Phone: {owner.phone || 'N/A'} - Property: {getPropertyAddress(safeProperties.find(p => p.id === owner.property_id))}</p>
                   <Box sx={{ mt: 1 }}>
                     <Button sx={{ mr: 1, backgroundColor: '#4a90e2', color: 'white', '&:hover': { backgroundColor: '#357abd' } }} onClick={() => handleClickOpen(owner)}>Edit</Button>
                     <Button sx={{ backgroundColor: '#e74c3c', color: 'white', '&:hover': { backgroundColor: '#c0392b' } }} onClick={() => handleDelete(owner.id)}>Delete</Button>
@@ -112,7 +122,7 @@ const PeopleOwners = () => {
             fullWidth
           >
             {safeProperties.map((prop) => (
-              <MenuItem key={prop.id} value={prop.id}>{prop.address}</MenuItem>
+              <MenuItem key={prop.id} value={prop.id}>{getPropertyAddress(prop)}</MenuItem>
             ))}
           </TextField>
         </DialogContent>

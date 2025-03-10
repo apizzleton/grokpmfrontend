@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import AppContext, { AppProvider } from './context/AppContext';
+import { AppProvider } from './context/AppContext';
 import { SnackbarProvider } from 'notistack';
 
 const container = document.getElementById('root');

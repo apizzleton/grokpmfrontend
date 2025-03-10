@@ -1,25 +1,27 @@
 import React, { useContext, useState } from 'react';
-import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, MenuItem } from '@mui/material';
-import { AppContext } from '../context/AppContext';
-import Pagination from '@mui/material/Pagination';
+import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, Typography, MenuItem } from '@mui/material';
+import AppContext from '../context/AppContext';
+import UnitCard from '../components/UnitCard';
+import { useSnackbar } from 'notistack';
 
 const RentalsUnits = () => {
-  const { state, dispatch } = useContext(AppContext);
+  const { state, updateData } = useContext(AppContext);
   const { units, properties, searchQuery } = state;
+  const { enqueueSnackbar } = useSnackbar();
   const [open, setOpen] = useState(false);
   const [editUnit, setEditUnit] = useState(null);
   const [formData, setFormData] = useState({ unit_number: '', rent_amount: '', status: '', property_id: '' });
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 5;
+  const [filter, setFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState('asc');
 
   const safeUnits = Array.isArray(units) ? [...units] : [];
-  const safeProperties = Array.isArray(properties) ? [...properties].sort((a, b) => a.address.localeCompare(b.address)) : [];
-  console.log('Units in RentalsUnits:', safeUnits);
-  console.log('Properties for dropdown:', safeProperties);
+  const safeProperties = Array.isArray(properties) ? [...properties].sort((a, b) => 
+    `${a.address}, ${a.city}, ${a.state}`.localeCompare(`${b.address}, ${b.city}, ${b.state}`)
+  ) : [];
 
   const handleClickOpen = (unit = null) => {
     setEditUnit(unit);
-    setFormData(unit || { unit_number: '', rent_amount: '', status: '', property_id: '' });
+    setFormData(unit || { unit_number: '', rent_amount: '', status: '', property_id: safeProperties[0]?.id || '' });
     setOpen(true);
   };
 
@@ -34,74 +36,151 @@ const RentalsUnits = () => {
 
   const handleSave = async () => {
     try {
-      const method = editUnit ? 'PUT' : 'POST';
-      const url = `https://grokpm-backend.onrender.com/units${editUnit ? `/${editUnit.id}` : ''}`;
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      if (!response.ok) throw new Error('Failed to save unit');
-      const data = await response.json();
-      dispatch({ type: 'SET_DATA', payload: { units: editUnit ? safeUnits.map(u => u.id === data.id ? data : u) : [...safeUnits, data] } });
+      const response = await updateData(
+        editUnit ? `units/${editUnit.id}` : 'units',
+        formData,
+        editUnit ? 'put' : 'post'
+      );
       handleClose();
+      enqueueSnackbar(editUnit ? 'Unit updated successfully' : 'Unit added successfully', { variant: 'success' });
     } catch (err) {
       console.error('Save error:', err);
+      enqueueSnackbar('Failed to save unit', { variant: 'error' });
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this unit?')) {
-      try {
-        const response = await fetch(`https://grokpm-backend.onrender.com/units/${id}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error('Failed to delete unit');
-        dispatch({ type: 'SET_DATA', payload: { units: safeUnits.filter(u => u.id !== id) } });
-      } catch (err) {
-        console.error('Delete error:', err);
-      }
+    try {
+      await updateData(`units/${id}`, null, 'delete');
+      enqueueSnackbar('Unit deleted successfully', { variant: 'success' });
+    } catch (err) {
+      console.error('Delete error:', err);
+      enqueueSnackbar('Failed to delete unit', { variant: 'error' });
     }
   };
 
-  const filteredUnits = safeUnits.filter(unit =>
-    (unit.unit_number?.toString().includes(searchQuery) ||
-     unit.status?.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const getPropertyFullAddress = (propertyId) => {
+    const property = safeProperties.find(p => p.id === propertyId);
+    return property ? `${property.address}, ${property.city}, ${property.state} ${property.zip}` : 'N/A';
+  };
 
-  const paginatedUnits = filteredUnits.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  const filteredUnits = safeUnits
+    .filter(unit => 
+      (searchQuery === '' || 
+       unit.unit_number?.toString().includes(searchQuery) ||
+       unit.status?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       getPropertyFullAddress(unit.property_id).toLowerCase().includes(searchQuery.toLowerCase())) &&
+      (filter === 'all' || unit.status === filter)
+    )
+    .sort((a, b) => {
+      const aNum = parseInt(a.unit_number) || 0;
+      const bNum = parseInt(b.unit_number) || 0;
+      return sortOrder === 'asc' ? aNum - bNum : bNum - aNum;
+    });
+
+  if (state.loading) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h4" gutterBottom>Units</Typography>
+        <Typography>Loading units...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3 }}>
-      <h2>Units</h2>
+      <Typography variant="h4" gutterBottom>
+        Units
+      </Typography>
+      
+      <Box sx={{ mb: 2 }}>
+        <TextField
+          select
+          label="Filter by Status"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          sx={{ mr: 2, width: 200 }}
+        >
+          <MenuItem value="all">All</MenuItem>
+          <MenuItem value="occupied">Occupied</MenuItem>
+          <MenuItem value="vacant">Vacant</MenuItem>
+        </TextField>
+        <Button 
+          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+          sx={{ mr: 2 }}
+        >
+          Sort by Unit Number ({sortOrder})
+        </Button>
+      </Box>
+
       {safeUnits.length > 0 ? (
         <Grid container spacing={2}>
-          {paginatedUnits.map((unit, index) => (
+          {filteredUnits.map((unit) => (
             unit && unit.id ? (
-              <Grid item xs={12} sm={6} md={4} key={unit.id || `unit-${index}`}>
-                <Box sx={{ border: '1px solid #ccc', p: 2, mb: 2, borderRadius: 4, boxShadow: 1, '&:hover': { boxShadow: 3 } }}>
-                  <p>Unit #{unit.unit_number || 'N/A'} - Rent: ${unit.rent_amount || 0}</p>
-                  <p>Status: {unit.status || 'N/A'} - Property: {safeProperties.find(p => p.id === unit.property_id)?.address || 'N/A'}</p>
-                  <Box sx={{ mt: 1 }}>
-                    <Button sx={{ mr: 1, backgroundColor: '#4a90e2', color: 'white', '&:hover': { backgroundColor: '#357abd' } }} onClick={() => handleClickOpen(unit)}>Edit</Button>
-                    <Button sx={{ backgroundColor: '#e74c3c', color: 'white', '&:hover': { backgroundColor: '#c0392b' } }} onClick={() => handleDelete(unit.id)}>Delete</Button>
-                  </Box>
-                </Box>
+              <Grid item xs={12} sm={6} md={4} key={unit.id}>
+                <UnitCard
+                  unit={unit}
+                  onEdit={handleClickOpen}
+                  onDelete={handleDelete}
+                  propertyAddress={getPropertyFullAddress(unit.property_id)}
+                />
               </Grid>
             ) : null
           ))}
         </Grid>
       ) : (
-        <p>No units available.</p>
+        <Typography variant="body1" sx={{ my: 2 }}>No units available.</Typography>
       )}
-      <Pagination count={Math.ceil(filteredUnits.length / itemsPerPage)} page={page} onChange={(e, value) => setPage(value)} sx={{ mt: 2 }} />
-      <Button variant="contained" sx={{ mt: 2, backgroundColor: '#4a90e2', '&:hover': { backgroundColor: '#357abd' } }} onClick={() => handleClickOpen()}>
-        Add Unit
-      </Button>
-      <Dialog open={open} onClose={handleClose}>
+
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h6" gutterBottom>
+          Add New Unit
+        </Typography>
+        <Button 
+          variant="contained" 
+          onClick={() => handleClickOpen()}
+          sx={{ mb: 2 }}
+        >
+          Add Unit
+        </Button>
+      </Box>
+
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle>{editUnit ? 'Edit Unit' : 'Add Unit'}</DialogTitle>
         <DialogContent>
-          <TextField autoFocus margin="dense" name="unit_number" label="Unit Number" value={formData.unit_number} onChange={handleChange} fullWidth />
-          <TextField margin="dense" name="rent_amount" label="Rent Amount" type="number" value={formData.rent_amount} onChange={handleChange} fullWidth />
-          <TextField margin="dense" name="status" label="Status" value={formData.status} onChange={handleChange} fullWidth />
+          <TextField
+            autoFocus
+            margin="dense"
+            name="unit_number"
+            label="Unit Number"
+            value={formData.unit_number}
+            onChange={handleChange}
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            margin="dense"
+            name="rent_amount"
+            label="Rent Amount"
+            type="number"
+            value={formData.rent_amount}
+            onChange={handleChange}
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            select
+            margin="dense"
+            name="status"
+            label="Status"
+            value={formData.status}
+            onChange={handleChange}
+            fullWidth
+            sx={{ mb: 2 }}
+          >
+            <MenuItem value="occupied">Occupied</MenuItem>
+            <MenuItem value="vacant">Vacant</MenuItem>
+          </TextField>
           <TextField
             select
             margin="dense"
@@ -112,13 +191,15 @@ const RentalsUnits = () => {
             fullWidth
           >
             {safeProperties.map((prop) => (
-              <MenuItem key={prop.id} value={prop.id}>{prop.address}</MenuItem>
+              <MenuItem key={prop.id} value={prop.id}>
+                {`${prop.address}, ${prop.city}, ${prop.state} ${prop.zip}`}
+              </MenuItem>
             ))}
           </TextField>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose} sx={{ color: '#757575' }}>Cancel</Button>
-          <Button onClick={handleSave} sx={{ backgroundColor: '#4a90e2', color: 'white', '&:hover': { backgroundColor: '#357abd' } }}>Save</Button>
+          <Button onClick={handleClose} sx={{ color: 'text.secondary' }}>Cancel</Button>
+          <Button onClick={handleSave} variant="contained">Save</Button>
         </DialogActions>
       </Dialog>
     </Box>

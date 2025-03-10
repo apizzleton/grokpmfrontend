@@ -1,9 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { Box } from '@mui/material';
-import Dashboard from './pages/Dashboard';
+import Overview from './pages/Overview';
 import RentalsProperties from './pages/RentalsProperties';
-import Units from './pages/Units';
+import RentalsUnits from './pages/RentalsUnits';
 import Accounting from './pages/Accounting';
 import PeopleTenants from './pages/PeopleTenants';
 import PeopleOwners from './pages/PeopleOwners';
@@ -21,9 +21,9 @@ function App() {
         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
           <Box sx={{ flexGrow: 1, overflow: 'auto', p: 3 }}>
             <Routes>
-              <Route path="/overview" element={<Dashboard />} />
+              <Route path="/overview" element={<Overview />} />
               <Route path="/rentals/properties" element={<RentalsProperties />} />
-              <Route path="/rentals/units" element={<Units />} />
+              <Route path="/rentals/units" element={<RentalsUnits />} />
               <Route path="/accounting" element={<Accounting />} />
               <Route path="/people/tenants" element={<PeopleTenants />} />
               <Route path="/people/owners" element={<PeopleOwners />} />
@@ -31,6 +31,7 @@ function App() {
               <Route path="/reports" element={<Reports />} />
               <Route path="/associations/properties" element={<AssociationsProperties />} />
               <Route path="/associations/associations" element={<AssociationsAssociations />} />
+              <Route path="/" element={<Navigate to="/overview" replace />} />
               <Route path="*" element={<Navigate to="/overview" replace />} />
             </Routes>
           </Box>
