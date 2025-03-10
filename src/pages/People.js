@@ -1,30 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useApp } from '../context/AppContext';
 import { Typography, List, TextField, Button, Grid, Paper, MenuItem, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import TenantCard from '../components/TenantCard';
 import { useTheme } from '@mui/material/styles'; // Import useTheme for dynamic color access
 
-function People({ tenants, handleTenantSubmit, newTenant, handleTenantInputChange, properties, units, user, setTenants }) {
+const People = () => {
+  const [tenants, setTenants] = useState([]);
+  const [newTenant, setNewTenant] = useState({});
   const [openDialog, setOpenDialog] = useState(false);
+  const [properties, setProperties] = useState([]);
+  const [units, setUnits] = useState([]);
+  const [user, setUser] = useState({});
+  const { fetchData, modifyData } = useApp();
   const theme = useTheme(); // Access theme for dynamic colors
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    const [tenantsData, propertiesData, unitsData, userData] = await Promise.all([
+      fetchData('tenants'),
+      fetchData('properties'),
+      fetchData('units'),
+      fetchData('user')
+    ]);
+
+    if (tenantsData) setTenants(tenantsData);
+    if (propertiesData) setProperties(propertiesData);
+    if (unitsData) setUnits(unitsData);
+    if (userData) setUser(userData);
+  };
 
   const handleOpenDialog = () => setOpenDialog(true);
   const handleCloseDialog = () => setOpenDialog(false);
 
-  const safeTenants = Array.isArray(tenants) ? tenants : [];
-  const safeProperties = Array.isArray(properties) ? properties : [];
-  const safeUnits = Array.isArray(units) ? units : [];
+  const handleTenantInputChange = (e) => {
+    setNewTenant({ ...newTenant, [e.target.name]: e.target.value });
+  };
+
+  const handleTenantSubmit = async (e) => {
+    e.preventDefault();
+    const success = await modifyData('POST', 'tenants', newTenant);
+    if (success) {
+      setTenants([...tenants, newTenant]);
+      setNewTenant({});
+    }
+  };
 
   const handleDeleteTenant = async (id) => {
-    if (!user) return alert('Please log in first');
-    try {
-      const token = localStorage.getItem('token');
-      await fetch(`https://grokpm-backend.onrender.com/tenants/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      setTenants(safeTenants.filter(t => t.id !== id));
-    } catch (err) {
-      console.error('Error deleting tenant:', err);
+    const success = await modifyData('DELETE', `tenants/${id}`);
+    if (success) {
+      setTenants(tenants.filter(t => t.id !== id));
     }
   };
 
@@ -36,8 +63,8 @@ function People({ tenants, handleTenantSubmit, newTenant, handleTenantInputChang
             People (Tenants)
           </Typography>
           <List>
-            {safeTenants.length > 0 ? (
-              safeTenants.map(tenant => (
+            {tenants.length > 0 ? (
+              tenants.map(tenant => (
                 <TenantCard key={tenant.id} tenant={tenant} onEdit={() => {}} onDelete={() => handleDeleteTenant(tenant.id)} />
               ))
             ) : (
@@ -71,9 +98,9 @@ function People({ tenants, handleTenantSubmit, newTenant, handleTenantInputChang
                   label="Select Unit"
                 >
                   <MenuItem value="">Select Unit</MenuItem>
-                  {safeUnits.map(unit => (
+                  {units.map(unit => (
                     <MenuItem key={unit.id} value={unit.id}>
-                      {unit.unit_number} (Property: {safeProperties.find(p => p.id === unit.property_id)?.address})
+                      {unit.unit_number} (Property: {properties.find(p => p.id === unit.property_id)?.address})
                     </MenuItem>
                   ))}
                 </TextField>
@@ -141,6 +168,6 @@ function People({ tenants, handleTenantSubmit, newTenant, handleTenantInputChang
       </Grid>
     </Grid>
   );
-}
+};
 
 export default People;

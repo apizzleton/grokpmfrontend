@@ -19,6 +19,7 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 import GroupsIcon from "@mui/icons-material/Groups";
 import BusinessIcon from "@mui/icons-material/Business";
 import PersonIcon from "@mui/icons-material/Person";
+import ArticleIcon from '@mui/icons-material/Article';
 import AppContext from "../context/AppContext";
 
 const NavBar = () => {
@@ -42,6 +43,7 @@ const NavBar = () => {
     { text: "Accounting", path: "/accounting", icon: <AccountBalanceIcon /> },
     { text: "Reports", path: "/reports", icon: <AssessmentIcon /> },
     { text: "Associations", path: "/associations/associations", icon: <ApartmentIcon /> },
+    { text: "Leases", path: "/leases", icon: <ArticleIcon /> },
   ];
 
   const NavContent = () => (
@@ -52,7 +54,7 @@ const NavBar = () => {
         placeholder="Search..."
         onChange={handleSearch}
         InputProps={{ 
-          startAdornment: <SearchIcon sx={{ color: "#2c3e50" }} />,
+          startAdornment: <SearchIcon sx={{ color: "#2c3e50" }} />, 
           sx: { borderRadius: 4 }
         }}
         sx={{ 
@@ -101,9 +103,9 @@ const NavBar = () => {
           top: 12,
           left: 12,
           zIndex: 1300,
-          backgroundColor: "#2c3e50",
+          background: "linear-gradient(45deg, #3498db, #2c3e50)",
           color: "#ecf0f1",
-          "&:hover": { backgroundColor: "#34495e" },
+          "&:hover": { background: "linear-gradient(45deg, #2980b9, #2c3e50)" },
           borderRadius: 2,
         }}
       >
@@ -124,7 +126,7 @@ const NavBar = () => {
           "& .MuiDrawer-paper": {
             width: 280,
             boxSizing: "border-box",
-            backgroundColor: "#2c3e50",
+            background: "linear-gradient(45deg, #3498db, #2c3e50)",
             color: "#ecf0f1",
             borderRight: "none",
             borderRadius: "0 8px 8px 0",
@@ -149,7 +151,7 @@ const NavBar = () => {
           "& .MuiDrawer-paper": {
             width: 280,
             boxSizing: "border-box",
-            backgroundColor: "#2c3e50",
+            background: "linear-gradient(45deg, #3498db, #2c3e50)",
             color: "#ecf0f1",
             borderRight: "none",
             boxShadow: "4px 0 10px rgba(0, 0, 0, 0.1)",

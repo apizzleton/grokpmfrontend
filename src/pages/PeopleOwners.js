@@ -1,16 +1,27 @@
-import React, { useContext, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useApp } from '../context/AppContext';
 import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, MenuItem } from '@mui/material';
-import AppContext from '../context/AppContext';
 import Pagination from '@mui/material/Pagination';
 
 const PeopleOwners = () => {
-  const { state, dispatch } = useContext(AppContext);
+  const { state, dispatch, fetchData, modifyData } = useApp();
   const { owners, properties, searchQuery } = state;
   const [open, setOpen] = useState(false);
   const [editOwner, setEditOwner] = useState(null);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', property_id: '' });
   const [page, setPage] = useState(1);
   const itemsPerPage = 5;
+
+  useEffect(() => {
+    loadOwners();
+  }, []);
+
+  const loadOwners = async () => {
+    const data = await fetchData('owners');
+    if (data) {
+      dispatch({ type: 'SET_DATA', payload: { owners: data } });
+    }
+  };
 
   const safeOwners = Array.isArray(owners) ? [...owners] : [];
   const safeProperties = Array.isArray(properties) ? [...properties].sort((a, b) => {
@@ -23,9 +34,6 @@ const PeopleOwners = () => {
     const primaryAddress = property?.addresses?.find(addr => addr.is_primary);
     return primaryAddress ? `${primaryAddress.street}, ${primaryAddress.city}` : 'N/A';
   };
-
-  console.log('Owners in PeopleOwners:', safeOwners);
-  console.log('Properties for dropdown:', safeProperties);
 
   const handleClickOpen = (owner = null) => {
     setEditOwner(owner);
@@ -43,32 +51,19 @@ const PeopleOwners = () => {
   };
 
   const handleSave = async () => {
-    try {
-      const method = editOwner ? 'PUT' : 'POST';
-      const url = `https://grokpm-backend.onrender.com/owners${editOwner ? `/${editOwner.id}` : ''}`;
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      if (!response.ok) throw new Error('Failed to save owner');
-      const data = await response.json();
-      dispatch({ type: 'SET_DATA', payload: { owners: editOwner ? safeOwners.map(o => o.id === data.id ? data : o) : [...safeOwners, data] } });
+    const method = editOwner ? 'PUT' : 'POST';
+    const endpoint = `owners${editOwner ? `/${editOwner.id}` : ''}`;
+    const success = await modifyData(method, endpoint, formData);
+    if (success) {
+      loadOwners();
       handleClose();
-    } catch (err) {
-      console.error('Save error:', err);
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this owner?')) {
-      try {
-        const response = await fetch(`https://grokpm-backend.onrender.com/owners/${id}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error('Failed to delete owner');
-        dispatch({ type: 'SET_DATA', payload: { owners: safeOwners.filter(o => o.id !== id) } });
-      } catch (err) {
-        console.error('Delete error:', err);
-      }
+    const success = await modifyData('DELETE', `owners/${id}`);
+    if (success) {
+      loadOwners();
     }
   };
 

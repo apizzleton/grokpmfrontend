@@ -11,6 +11,9 @@ import PeopleBoardMembers from './pages/PeopleBoardMembers';
 import Reports from './pages/Reports';
 import AssociationsProperties from './pages/AssociationsProperties';
 import AssociationsAssociations from './pages/AssociationsAssociations';
+import PropertyDetail from './pages/PropertyDetail';
+import UnitDetail from './pages/UnitDetail';
+import Leases from './pages/Leases';
 import NavBar from './components/NavBar';
 
 function App() {
@@ -23,7 +26,9 @@ function App() {
             <Routes>
               <Route path="/overview" element={<Overview />} />
               <Route path="/rentals/properties" element={<RentalsProperties />} />
+              <Route path="/rentals/properties/:id" element={<PropertyDetail />} />
               <Route path="/rentals/units" element={<RentalsUnits />} />
+              <Route path="/rentals/units/:id" element={<UnitDetail />} />
               <Route path="/accounting" element={<Accounting />} />
               <Route path="/people/tenants" element={<PeopleTenants />} />
               <Route path="/people/owners" element={<PeopleOwners />} />
@@ -31,6 +36,7 @@ function App() {
               <Route path="/reports" element={<Reports />} />
               <Route path="/associations/properties" element={<AssociationsProperties />} />
               <Route path="/associations/associations" element={<AssociationsAssociations />} />
+              <Route path="/leases" element={<Leases />} />
               <Route path="/" element={<Navigate to="/overview" replace />} />
               <Route path="*" element={<Navigate to="/overview" replace />} />
             </Routes>

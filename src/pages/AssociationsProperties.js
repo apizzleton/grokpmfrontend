@@ -1,19 +1,37 @@
-import React, { useContext, useState } from 'react';
-import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, MenuItem } from '@mui/material';
-import AppContext from '../context/AppContext';
-import Pagination from '@mui/material/Pagination';
+import { Container, Typography, Pagination, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Grid, Box, Select, FormControl, InputLabel, InputAdornment } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { useApp } from '../context/AppContext';
+import PropertyCard from '../components/PropertyCard';
+import SearchIcon from '@mui/icons-material/Search';
 
 const AssociationsProperties = () => {
-  const { state, dispatch } = useContext(AppContext);
-  const { properties, searchQuery } = state;
+  const [properties, setProperties] = useState([]);
   const [open, setOpen] = useState(false);
   const [editProperty, setEditProperty] = useState(null);
   const [formData, setFormData] = useState({ address: '', city: '', state: '', zip: '', value: '', owner_id: '' });
   const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('address');
   const itemsPerPage = 5;
+  const { fetchData, modifyData } = useApp();
 
-  const safeProperties = Array.isArray(properties) ? [...properties] : [];
-  console.log('Properties in AssociationsProperties:', safeProperties);
+  useEffect(() => {
+    loadProperties();
+  }, []);
+
+  const loadProperties = async () => {
+    const data = await fetchData('properties');
+    if (data) {
+      setProperties(data);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const success = await modifyData('DELETE', `properties/${id}`);
+    if (success) {
+      loadProperties();
+    }
+  };
 
   const handleClickOpen = (property = null) => {
     setEditProperty(property);
@@ -33,68 +51,89 @@ const AssociationsProperties = () => {
   const handleSave = async () => {
     try {
       const method = editProperty ? 'PUT' : 'POST';
-      const url = `https://grokpm-backend.onrender.com/properties${editProperty ? `/${editProperty.id}` : ''}`;
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      if (!response.ok) throw new Error('Failed to save property');
-      const data = await response.json();
-      dispatch({ type: 'SET_DATA', payload: { properties: editProperty ? safeProperties.map(p => p.id === data.id ? data : p) : [...safeProperties, data] } });
-      handleClose();
+      const url = `properties${editProperty ? `/${editProperty.id}` : ''}`;
+      const success = await modifyData(method, url, formData);
+      if (success) {
+        loadProperties();
+        handleClose();
+      }
     } catch (err) {
       console.error('Save error:', err);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this property?')) {
-      try {
-        const response = await fetch(`https://grokpm-backend.onrender.com/properties/${id}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error('Failed to delete property');
-        dispatch({ type: 'SET_DATA', payload: { properties: safeProperties.filter(p => p.id !== id) } });
-      } catch (err) {
-        console.error('Delete error:', err);
+  const filteredProperties = properties
+    .filter(property => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        property.address?.toLowerCase().includes(searchLower) ||
+        property.city?.toLowerCase().includes(searchLower) ||
+        property.state?.toLowerCase().includes(searchLower) ||
+        property.zip?.toLowerCase().includes(searchLower)
+      );
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'value':
+          return (parseFloat(a.value) || 0) - (parseFloat(b.value) || 0);
+        case 'city':
+          return (a.city || '').localeCompare(b.city || '');
+        case 'state':
+          return (a.state || '').localeCompare(b.state || '');
+        case 'address':
+        default:
+          return (a.address || '').localeCompare(b.address || '');
       }
-    }
-  };
-
-  const filteredProperties = safeProperties.filter(property =>
-    (property.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     property.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     property.state?.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+    });
 
   const paginatedProperties = filteredProperties.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   return (
-    <Box sx={{ p: 3 }}>
-      <h2>Associations Properties</h2>
-      {safeProperties.length > 0 ? (
-        <Grid container spacing={2}>
-          {paginatedProperties.map((property, index) => (
-            property && property.id ? (
-              <Grid item xs={12} sm={6} md={4} key={property.id || `property-${index}`}>
-                <Box sx={{ border: '1px solid #ccc', p: 2, mb: 2, borderRadius: 4, boxShadow: 1, '&:hover': { boxShadow: 3 } }}>
-                  <p>{property.address || 'No address'}, {property.city || 'No city'}, {property.state || 'No state'} {property.zip || 'No ZIP'}</p>
-                  <p>Value: ${property.value || 0}</p>
-                  <Box sx={{ mt: 1 }}>
-                    <Button sx={{ mr: 1, backgroundColor: '#4a90e2', color: 'white', '&:hover': { backgroundColor: '#357abd' } }} onClick={() => handleClickOpen(property)}>Edit</Button>
-                    <Button sx={{ backgroundColor: '#e74c3c', color: 'white', '&:hover': { backgroundColor: '#c0392b' } }} onClick={() => handleDelete(property.id)}>Delete</Button>
-                  </Box>
-                </Box>
-              </Grid>
-            ) : null
-          ))}
-        </Grid>
-      ) : (
-        <p>No properties available.</p>
-      )}
+    <Container>
+      <Typography variant="h4" gutterBottom>
+        Properties
+      </Typography>
+      
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
+        <TextField
+          placeholder="Search properties..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ flexGrow: 1 }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <FormControl sx={{ minWidth: 120 }}>
+          <InputLabel>Sort By</InputLabel>
+          <Select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            label="Sort By"
+          >
+            <MenuItem value="address">Address</MenuItem>
+            <MenuItem value="city">City</MenuItem>
+            <MenuItem value="state">State</MenuItem>
+            <MenuItem value="value">Value</MenuItem>
+          </Select>
+        </FormControl>
+        <Button variant="contained" onClick={() => handleClickOpen()}>
+          Add Property
+        </Button>
+      </Box>
+
+      <Grid container spacing={3}>
+        {paginatedProperties.map((property) => (
+          <Grid item xs={12} sm={6} md={4} key={property.id}>
+            <PropertyCard property={property} onDelete={handleDelete} onEdit={handleClickOpen} />
+          </Grid>
+        ))}
+      </Grid>
       <Pagination count={Math.ceil(filteredProperties.length / itemsPerPage)} page={page} onChange={(e, value) => setPage(value)} sx={{ mt: 2 }} />
-      <Button variant="contained" sx={{ mt: 2, backgroundColor: '#4a90e2', '&:hover': { backgroundColor: '#357abd' } }} onClick={() => handleClickOpen()}>
-        Add Property
-      </Button>
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>{editProperty ? 'Edit Property' : 'Add Property'}</DialogTitle>
         <DialogContent>
@@ -112,7 +151,7 @@ const AssociationsProperties = () => {
             onChange={handleChange}
             fullWidth
           >
-            {safeProperties
+            {properties
               .map(prop => ({ id: prop.owner_id, name: `${prop.owner_id}` })) // Assuming owner_id maps to an owner name or ID
               .filter((item, idx, self) => self.findIndex(t => t.id === item.id) === idx) // Unique owners
               .sort((a, b) => a.name.localeCompare(b.name))
@@ -122,11 +161,11 @@ const AssociationsProperties = () => {
           </TextField>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose} sx={{ color: '#757575' }}>Cancel</Button>
-          <Button onClick={handleSave} sx={{ backgroundColor: '#4a90e2', color: 'white', '&:hover': { backgroundColor: '#357abd' } }}>Save</Button>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button onClick={handleSave}>Save</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Container>
   );
 };
 

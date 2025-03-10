@@ -33,6 +33,8 @@ const RentalsUnits = () => {
   const [filter, setFilter] = useState('all');
   const [sortOrder, setSortOrder] = useState('asc');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [filterLocation, setFilterLocation] = useState('');
+  const [sortBy, setSortBy] = useState('rent');
 
   // Get all addresses from all properties
   const allAddresses = properties.reduce((addresses, property) => {
@@ -131,18 +133,33 @@ const RentalsUnits = () => {
     return address ? address.fullAddress : 'N/A';
   };
 
+  const handleFilterLocationChange = (e) => {
+    setFilterLocation(e.target.value);
+  };
+
+  const handleSortChange = (e) => {
+    setSortBy(e.target.value);
+  };
+
   const filteredUnits = Array.isArray(units) ? units
     .filter(unit => 
       (searchQuery === '' || 
        unit.unit_number?.toString().includes(searchQuery) ||
        unit.status?.toLowerCase().includes(searchQuery.toLowerCase()) ||
        getAddressDetails(unit.address_id).toLowerCase().includes(searchQuery.toLowerCase())) &&
-      (filter === 'all' || unit.status === filter)
+      (filter === 'all' || unit.status === filter) &&
+      (!filterLocation || 
+       getAddressDetails(unit.address_id).toLowerCase().includes(filterLocation.toLowerCase()))
     )
     .sort((a, b) => {
-      const aNum = parseInt(a.unit_number) || 0;
-      const bNum = parseInt(b.unit_number) || 0;
-      return sortOrder === 'asc' ? aNum - bNum : bNum - aNum;
+      if (sortBy === 'rent') {
+        return a.rent_amount - b.rent_amount;
+      } else if (sortBy === 'unit') {
+        const aNum = parseInt(a.unit_number) || 0;
+        const bNum = parseInt(b.unit_number) || 0;
+        return aNum - bNum;
+      }
+      return 0;
     }) : [];
 
   return (
@@ -171,6 +188,25 @@ const RentalsUnits = () => {
             <MenuItem value="asc">Unit # (Low-High)</MenuItem>
             <MenuItem value="desc">Unit # (High-Low)</MenuItem>
           </TextField>
+          <Box sx={{ mb: 2, display: 'flex', gap: 2 }}>
+            <TextField
+              label="Filter by Location"
+              value={filterLocation}
+              onChange={handleFilterLocationChange}
+              size="small"
+            />
+            <TextField
+              select
+              label="Sort By"
+              value={sortBy}
+              onChange={handleSortChange}
+              size="small"
+              sx={{ minWidth: 120 }}
+            >
+              <MenuItem value="rent">Rent Amount</MenuItem>
+              <MenuItem value="unit">Unit Number</MenuItem>
+            </TextField>
+          </Box>
           <Button
             variant="contained"
             onClick={() => handleClickOpen()}

@@ -14,9 +14,11 @@ import {
   CircularProgress
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
+import { useNavigate } from 'react-router-dom';
 
-const UnitCard = ({ unit, onEdit, onDelete, propertyAddress }) => {
+const UnitCard = ({ unit, onDelete, propertyAddress }) => {
   const { enqueueSnackbar } = useSnackbar();
+  const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -74,10 +76,10 @@ const UnitCard = ({ unit, onEdit, onDelete, propertyAddress }) => {
         <CardActions>
           <Button 
             size="small" 
-            onClick={() => onEdit(unit)}
+            onClick={() => navigate(`/rentals/units/${unit.id}`)}
             sx={{ color: 'primary.main' }}
           >
-            Edit
+            View
           </Button>
           <Button 
             size="small" 

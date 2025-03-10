@@ -21,21 +21,23 @@ import {
   DialogActions,
   Button
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import StarIcon from '@mui/icons-material/Star';
 import HomeIcon from '@mui/icons-material/Home';
 import BusinessIcon from '@mui/icons-material/Business';
 import FactoryIcon from '@mui/icons-material/Factory';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useSnackbar } from 'notistack';
 import AppContext from '../context/AppContext';
+import { useNavigate } from 'react-router-dom';
 
-const PropertyCard = ({ property, onEdit, onDelete }) => {
+const PropertyCard = ({ property, onDelete }) => {
   const { getPropertyAddresses, getUnitsForAddress } = useContext(AppContext);
   const { enqueueSnackbar } = useSnackbar();
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const addresses = getPropertyAddresses(property);
+  const navigate = useNavigate();
   
   const getPropertyTypeIcon = (type) => {
     switch (type?.toLowerCase()) {
@@ -148,10 +150,10 @@ const PropertyCard = ({ property, onEdit, onDelete }) => {
         <CardActions sx={{ justifyContent: 'flex-end', p: 1 }}>
           <IconButton 
             size="small" 
-            onClick={() => onEdit(property)}
+            onClick={() => navigate(`/rentals/properties/${property.id}`)}
             color="primary"
           >
-            <EditIcon />
+            <VisibilityIcon />
           </IconButton>
           <IconButton 
             size="small" 
