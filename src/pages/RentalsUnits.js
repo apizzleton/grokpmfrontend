@@ -1,27 +1,68 @@
 import React, { useContext, useState } from 'react';
-import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, Typography, MenuItem } from '@mui/material';
+import { 
+  Box, 
+  Button, 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogActions, 
+  TextField, 
+  Grid, 
+  Typography, 
+  MenuItem,
+  CircularProgress,
+  IconButton
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import AppContext from '../context/AppContext';
 import UnitCard from '../components/UnitCard';
 import { useSnackbar } from 'notistack';
 
 const RentalsUnits = () => {
-  const { state, updateData } = useContext(AppContext);
+  const { state, updateData, setState, refreshData } = useContext(AppContext);
   const { units, properties, searchQuery } = state;
   const { enqueueSnackbar } = useSnackbar();
   const [open, setOpen] = useState(false);
   const [editUnit, setEditUnit] = useState(null);
-  const [formData, setFormData] = useState({ unit_number: '', rent_amount: '', status: '', property_id: '' });
+  const [formData, setFormData] = useState({ 
+    unit_number: '', 
+    rent_amount: '', 
+    status: 'vacant', 
+    address_id: '' 
+  });
   const [filter, setFilter] = useState('all');
   const [sortOrder, setSortOrder] = useState('asc');
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const safeUnits = Array.isArray(units) ? [...units] : [];
-  const safeProperties = Array.isArray(properties) ? [...properties].sort((a, b) => 
-    `${a.address}, ${a.city}, ${a.state}`.localeCompare(`${b.address}, ${b.city}, ${b.state}`)
-  ) : [];
+  // Get all addresses from all properties
+  const allAddresses = properties.reduce((addresses, property) => {
+    if (property.addresses && Array.isArray(property.addresses)) {
+      return [...addresses, ...property.addresses.map(addr => ({
+        ...addr,
+        propertyName: property.name,
+        fullAddress: `${property.name} - ${addr.street}, ${addr.city}, ${addr.state} ${addr.zip}`
+      }))];
+    }
+    return addresses;
+  }, []);
 
   const handleClickOpen = (unit = null) => {
     setEditUnit(unit);
-    setFormData(unit || { unit_number: '', rent_amount: '', status: '', property_id: safeProperties[0]?.id || '' });
+    if (unit) {
+      setFormData({
+        unit_number: unit.unit_number || '',
+        rent_amount: unit.rent_amount || '',
+        status: unit.status || 'vacant',
+        address_id: unit.address_id || ''
+      });
+    } else {
+      setFormData({ 
+        unit_number: '', 
+        rent_amount: '', 
+        status: 'vacant', 
+        address_id: allAddresses.length > 0 ? allAddresses[0].id : ''
+      });
+    }
     setOpen(true);
   };
 
@@ -36,6 +77,17 @@ const RentalsUnits = () => {
 
   const handleSave = async () => {
     try {
+      // Validate required fields
+      if (!formData.unit_number?.trim()) {
+        enqueueSnackbar('Unit number is required', { variant: 'error' });
+        return;
+      }
+
+      if (!formData.address_id) {
+        enqueueSnackbar('Property address is required', { variant: 'error' });
+        return;
+      }
+
       const response = await updateData(
         editUnit ? `units/${editUnit.id}` : 'units',
         formData,
@@ -43,78 +95,112 @@ const RentalsUnits = () => {
       );
       handleClose();
       enqueueSnackbar(editUnit ? 'Unit updated successfully' : 'Unit added successfully', { variant: 'success' });
-    } catch (err) {
-      console.error('Save error:', err);
-      enqueueSnackbar('Failed to save unit', { variant: 'error' });
+    } catch (error) {
+      console.error('Save error:', error);
+      enqueueSnackbar(error.message || 'Failed to save unit', { variant: 'error' });
     }
   };
 
   const handleDelete = async (id) => {
     try {
+      setIsDeleting(true);
+      console.log(`Attempting to delete unit with ID: ${id}`);
+      
+      // Manually update the UI first for better UX
+      const updatedUnits = units.filter(u => u.id !== id);
+      setState(prev => ({
+        ...prev,
+        units: updatedUnits
+      }));
+      
       await updateData(`units/${id}`, null, 'delete');
       enqueueSnackbar('Unit deleted successfully', { variant: 'success' });
-    } catch (err) {
-      console.error('Delete error:', err);
-      enqueueSnackbar('Failed to delete unit', { variant: 'error' });
+    } catch (error) {
+      console.error('Delete error:', error);
+      enqueueSnackbar(error.message || 'Failed to delete unit', { variant: 'error' });
+      
+      // Refresh data to restore the UI if deletion failed
+      refreshData();
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  const getPropertyFullAddress = (propertyId) => {
-    const property = safeProperties.find(p => p.id === propertyId);
-    return property ? `${property.address}, ${property.city}, ${property.state} ${property.zip}` : 'N/A';
+  const getAddressDetails = (addressId) => {
+    const address = allAddresses.find(addr => addr.id === addressId);
+    return address ? address.fullAddress : 'N/A';
   };
 
-  const filteredUnits = safeUnits
+  const filteredUnits = Array.isArray(units) ? units
     .filter(unit => 
       (searchQuery === '' || 
        unit.unit_number?.toString().includes(searchQuery) ||
        unit.status?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-       getPropertyFullAddress(unit.property_id).toLowerCase().includes(searchQuery.toLowerCase())) &&
+       getAddressDetails(unit.address_id).toLowerCase().includes(searchQuery.toLowerCase())) &&
       (filter === 'all' || unit.status === filter)
     )
     .sort((a, b) => {
       const aNum = parseInt(a.unit_number) || 0;
       const bNum = parseInt(b.unit_number) || 0;
       return sortOrder === 'asc' ? aNum - bNum : bNum - aNum;
-    });
-
-  if (state.loading) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h4" gutterBottom>Units</Typography>
-        <Typography>Loading units...</Typography>
-      </Box>
-    );
-  }
+    }) : [];
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Units
-      </Typography>
-      
-      <Box sx={{ mb: 2 }}>
-        <TextField
-          select
-          label="Filter by Status"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          sx={{ mr: 2, width: 200 }}
-        >
-          <MenuItem value="all">All</MenuItem>
-          <MenuItem value="occupied">Occupied</MenuItem>
-          <MenuItem value="vacant">Vacant</MenuItem>
-        </TextField>
-        <Button 
-          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-          sx={{ mr: 2 }}
-        >
-          Sort by Unit Number ({sortOrder})
-        </Button>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4">Units</Typography>
+        <Box>
+          <TextField
+            select
+            size="small"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            sx={{ mr: 2, minWidth: 120 }}
+          >
+            <MenuItem value="all">All Units</MenuItem>
+            <MenuItem value="occupied">Occupied</MenuItem>
+            <MenuItem value="vacant">Vacant</MenuItem>
+          </TextField>
+          <TextField
+            select
+            size="small"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            sx={{ mr: 2, minWidth: 120 }}
+          >
+            <MenuItem value="asc">Unit # (Low-High)</MenuItem>
+            <MenuItem value="desc">Unit # (High-Low)</MenuItem>
+          </TextField>
+          <Button
+            variant="contained"
+            onClick={() => handleClickOpen()}
+            startIcon={<AddIcon />}
+          >
+            Add Unit
+          </Button>
+        </Box>
       </Box>
 
-      {safeUnits.length > 0 ? (
-        <Grid container spacing={2}>
+      {state.loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : filteredUnits.length === 0 ? (
+        <Box sx={{ mt: 4, textAlign: 'center' }}>
+          <Typography variant="h6" color="text.secondary">
+            No units found
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={() => handleClickOpen()}
+            startIcon={<AddIcon />}
+            sx={{ mt: 2 }}
+          >
+            Add Your First Unit
+          </Button>
+        </Box>
+      ) : (
+        <Grid container spacing={3}>
           {filteredUnits.map((unit) => (
             unit && unit.id ? (
               <Grid item xs={12} sm={6} md={4} key={unit.id}>
@@ -122,84 +208,88 @@ const RentalsUnits = () => {
                   unit={unit}
                   onEdit={handleClickOpen}
                   onDelete={handleDelete}
-                  propertyAddress={getPropertyFullAddress(unit.property_id)}
+                  propertyAddress={getAddressDetails(unit.address_id)}
                 />
               </Grid>
             ) : null
           ))}
         </Grid>
-      ) : (
-        <Typography variant="body1" sx={{ my: 2 }}>No units available.</Typography>
       )}
-
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h6" gutterBottom>
-          Add New Unit
-        </Typography>
-        <Button 
-          variant="contained" 
-          onClick={() => handleClickOpen()}
-          sx={{ mb: 2 }}
-        >
-          Add Unit
-        </Button>
-      </Box>
 
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle>{editUnit ? 'Edit Unit' : 'Add Unit'}</DialogTitle>
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            name="unit_number"
-            label="Unit Number"
-            value={formData.unit_number}
-            onChange={handleChange}
-            fullWidth
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            name="rent_amount"
-            label="Rent Amount"
-            type="number"
-            value={formData.rent_amount}
-            onChange={handleChange}
-            fullWidth
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            select
-            margin="dense"
-            name="status"
-            label="Status"
-            value={formData.status}
-            onChange={handleChange}
-            fullWidth
-            sx={{ mb: 2 }}
-          >
-            <MenuItem value="occupied">Occupied</MenuItem>
-            <MenuItem value="vacant">Vacant</MenuItem>
-          </TextField>
-          <TextField
-            select
-            margin="dense"
-            name="property_id"
-            label="Property"
-            value={formData.property_id}
-            onChange={handleChange}
-            fullWidth
-          >
-            {safeProperties.map((prop) => (
-              <MenuItem key={prop.id} value={prop.id}>
-                {`${prop.address}, ${prop.city}, ${prop.state} ${prop.zip}`}
-              </MenuItem>
-            ))}
-          </TextField>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                name="unit_number"
+                label="Unit Number"
+                value={formData.unit_number}
+                onChange={handleChange}
+                fullWidth
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                name="rent_amount"
+                label="Rent Amount"
+                type="number"
+                value={formData.rent_amount}
+                onChange={handleChange}
+                fullWidth
+                InputProps={{
+                  startAdornment: <Typography>$</Typography>
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                name="status"
+                label="Status"
+                value={formData.status}
+                onChange={handleChange}
+                fullWidth
+                required
+              >
+                <MenuItem value="occupied">Occupied</MenuItem>
+                <MenuItem value="vacant">Vacant</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                name="address_id"
+                label="Property Address"
+                value={formData.address_id}
+                onChange={handleChange}
+                fullWidth
+                required
+              >
+                {allAddresses.map((address) => (
+                  <MenuItem key={address.id} value={address.id}>
+                    {address.fullAddress}
+                  </MenuItem>
+                ))}
+                {allAddresses.length === 0 && (
+                  <MenuItem disabled>
+                    No properties available - add a property first
+                  </MenuItem>
+                )}
+              </TextField>
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose} sx={{ color: 'text.secondary' }}>Cancel</Button>
-          <Button onClick={handleSave} variant="contained">Save</Button>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button 
+            onClick={handleSave} 
+            variant="contained"
+            disabled={!formData.unit_number || !formData.address_id}
+          >
+            Save
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

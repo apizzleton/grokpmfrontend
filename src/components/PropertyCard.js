@@ -1,66 +1,186 @@
-import React from 'react';
-import { Card, CardContent, Typography, Button, CardActions, Box } from '@mui/material';
+import React, { useContext } from 'react';
+import {
+  Card,
+  CardContent,
+  CardActions,
+  Typography,
+  IconButton,
+  Box,
+  Chip,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  ListItemSecondaryAction,
+  Divider,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button
+} from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import StarIcon from '@mui/icons-material/Star';
+import HomeIcon from '@mui/icons-material/Home';
+import BusinessIcon from '@mui/icons-material/Business';
+import FactoryIcon from '@mui/icons-material/Factory';
 import { useSnackbar } from 'notistack';
+import AppContext from '../context/AppContext';
 
 const PropertyCard = ({ property, onEdit, onDelete }) => {
+  const { getPropertyAddresses, getUnitsForAddress } = useContext(AppContext);
   const { enqueueSnackbar } = useSnackbar();
-
-  const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this property?')) {
-      try {
-        await onDelete(property.id);
-        enqueueSnackbar('Property deleted successfully', { variant: 'success' });
-      } catch (error) {
-        enqueueSnackbar('Failed to delete property', { variant: 'error' });
-      }
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const addresses = getPropertyAddresses(property);
+  
+  const getPropertyTypeIcon = (type) => {
+    switch (type?.toLowerCase()) {
+      case 'commercial':
+        return <BusinessIcon />;
+      case 'industrial':
+        return <FactoryIcon />;
+      default:
+        return <HomeIcon />;
     }
   };
 
+  const formatCurrency = (value) => {
+    if (!value) return 'N/A';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await onDelete(property.id);
+      enqueueSnackbar('Property deleted successfully', { variant: 'success' });
+    } catch (error) {
+      console.error('Error deleting property:', error);
+      enqueueSnackbar(error.message || 'Failed to delete property', { variant: 'error' });
+    } finally {
+      setDeleteDialogOpen(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+  };
+
   return (
-    <Card sx={{ 
-      height: '100%', 
-      display: 'flex', 
-      flexDirection: 'column',
-      '&:hover': { boxShadow: 6 }
-    }}>
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Typography variant="h6" gutterBottom>
-          {property.name || 'Unnamed Property'}
-        </Typography>
-        <Typography variant="body1" color="text.secondary" gutterBottom>
-          {property.address}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          {property.city}, {property.state} {property.zip}
-        </Typography>
-        <Box sx={{ 
-          display: 'inline-block', 
-          px: 1, 
-          py: 0.5, 
-          borderRadius: 1,
-          bgcolor: property.status === 'active' ? 'success.light' : 'warning.light',
-          color: 'white'
-        }}>
-          {property.status}
-        </Box>
-      </CardContent>
-      <CardActions>
-        <Button 
-          size="small" 
-          onClick={() => onEdit(property)}
-          sx={{ color: 'primary.main' }}
-        >
-          Edit
-        </Button>
-        <Button 
-          size="small" 
-          onClick={handleDelete}
-          sx={{ color: 'error.main' }}
-        >
-          Delete
-        </Button>
-      </CardActions>
-    </Card>
+    <>
+      <Card 
+        elevation={3}
+        sx={{
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+          '&:hover': { boxShadow: 6 }
+        }}
+      >
+        <CardContent sx={{ flexGrow: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            {getPropertyTypeIcon(property.property_type)}
+            <Typography variant="h6" component="div" sx={{ ml: 1, flexGrow: 1 }}>
+              {property.name || 'Unnamed Property'}
+            </Typography>
+            <Chip 
+              label={property.status}
+              color={property.status === 'active' ? 'success' : 'default'}
+              size="small"
+            />
+          </Box>
+
+          <Typography color="text.secondary" gutterBottom>
+            Value: {formatCurrency(property.value)}
+          </Typography>
+
+          <Divider sx={{ my: 1 }} />
+
+          <List dense>
+            {addresses.map((address) => {
+              const units = getUnitsForAddress(address.id);
+              return (
+                <ListItem 
+                  key={address.id}
+                  sx={{ 
+                    px: 0,
+                    py: 0.5,
+                    display: 'flex',
+                    alignItems: 'flex-start'
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 36 }}>
+                    <LocationOnIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ mr: 1 }}>
+                          {address.street}, {address.city}, {address.state} {address.zip}
+                        </Typography>
+                        {address.is_primary && (
+                          <Tooltip title="Primary Address">
+                            <StarIcon fontSize="small" color="primary" />
+                          </Tooltip>
+                        )}
+                      </Box>
+                    }
+                    secondary={units.length > 0 && `${units.length} unit${units.length === 1 ? '' : 's'}`}
+                  />
+                </ListItem>
+              );
+            })}
+          </List>
+        </CardContent>
+
+        <CardActions sx={{ justifyContent: 'flex-end', p: 1 }}>
+          <IconButton 
+            size="small" 
+            onClick={() => onEdit(property)}
+            color="primary"
+          >
+            <EditIcon />
+          </IconButton>
+          <IconButton 
+            size="small" 
+            onClick={handleDeleteClick}
+            color="error"
+          >
+            <DeleteIcon />
+          </IconButton>
+        </CardActions>
+      </Card>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+      >
+        <DialogTitle>Delete Property</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete "{property.name}"? This will also delete all associated addresses and units. This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel}>Cancel</Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 

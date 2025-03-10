@@ -1,190 +1,146 @@
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: 'https://grokpmbackend-new.onrender.com/api',
-  timeout: 10000, // 10-second timeout
-});
+const AppContext = createContext();
+
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://grokpmbackend-new.onrender.com/api';
 
 export const AppProvider = ({ children }) => {
-  const [properties, setProperties] = useState([]);
-  const [units, setUnits] = useState([]);
-  const [tenants, setTenants] = useState([]);
-  const [owners, setOwners] = useState([]);
-  const [associations, setAssociations] = useState([]);
-  const [boardMembers, setBoardMembers] = useState([]);
-  const [accounts, setAccounts] = useState([]);
-  const [accountTypes, setAccountTypes] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [transactionTypes, setTransactionTypes] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState({
+    properties: [],
+    units: [],
+    tenants: [],
+    owners: [],
+    associations: [],
+    loading: true,
+    error: null,
+    searchQuery: ''
+  });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // First fetch properties separately to debug
-        const propertiesResponse = await api.get('/properties');
-        console.log('Properties response:', propertiesResponse.data);
-        if (Array.isArray(propertiesResponse.data)) {
-          setProperties(propertiesResponse.data);
-        } else {
-          console.error('Properties data is not an array:', propertiesResponse.data);
-          setProperties([]);
-        }
-
-        const endpoints = [
-          'units',
-          'tenants',
-          'owners',
-          'associations',
-          'board-members',
-          'accounts',
-          'account-types',
-          'transactions',
-          'transaction-types',
-          'payments',
-        ];
-
-        const responses = await Promise.all(
-          endpoints.map(endpoint => api.get(`/${endpoint}`).catch(error => {
-            console.error(`Failed to fetch ${endpoint}:`, error.message);
-            return { data: [] };
-          }))
-        );
-
-        const setters = [
-          setUnits,
-          setTenants,
-          setOwners,
-          setAssociations,
-          setBoardMembers,
-          setAccounts,
-          setAccountTypes,
-          setTransactions,
-          setTransactionTypes,
-          setPayments,
-        ];
-
-        responses.forEach((res, index) => {
-          if (res.data && Array.isArray(res.data)) {
-            setters[index](res.data);
-          } else {
-            console.error(`Invalid data format for ${endpoints[index]}:`, res.data);
-            setters[index]([]);
-          }
-        });
-      } catch (error) {
-        console.error('Error fetching data:', error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const updateData = async (endpoint, data, method = 'post') => {
+  const fetchData = async (endpoint) => {
     try {
-      const cleanEndpoint = endpoint.replace(/^transactions\//, '');
-      let response;
-      
-      if (method === 'delete') {
-        response = await api.delete(`/${cleanEndpoint}`);
-        // Update local state by removing the deleted item
-        const stateMap = {
-          'properties': setProperties,
-          'units': setUnits,
-          'tenants': setTenants,
-          'owners': setOwners,
-          'associations': setAssociations,
-          'board-members': setBoardMembers,
-          'accounts': setAccounts,
-          'account-types': setAccountTypes,
-          'transactions': setTransactions,
-          'transaction-types': setTransactionTypes,
-          'payments': setPayments,
-        };
-
-        const setter = stateMap[cleanEndpoint.split('/')[0]];
-        if (setter) {
-          const id = cleanEndpoint.split('/')[1];
-          setter(prev => {
-            console.log('Removing item with id:', id, 'from', cleanEndpoint.split('/')[0]);
-            return prev.filter(item => item.id !== parseInt(id));
-          });
-        }
-      } else {
-        response = await api[method](`/${cleanEndpoint}`, data);
-        console.log(`${method.toUpperCase()} response for ${cleanEndpoint}:`, response.data);
-        
-        // Update local state by adding/updating the item
-        const stateMap = {
-          'properties': setProperties,
-          'units': setUnits,
-          'tenants': setTenants,
-          'owners': setOwners,
-          'associations': setAssociations,
-          'board-members': setBoardMembers,
-          'accounts': setAccounts,
-          'account-types': setAccountTypes,
-          'transactions': setTransactions,
-          'transaction-types': setTransactionTypes,
-          'payments': setPayments,
-        };
-
-        const setter = stateMap[cleanEndpoint.split('/')[0]];
-        if (setter) {
-          if (method === 'put') {
-            setter(prev => {
-              console.log('Updating item:', response.data);
-              return prev.map(item => item.id === response.data.id ? response.data : item);
-            });
-          } else {
-            setter(prev => {
-              console.log('Adding new item:', response.data);
-              return [...prev, response.data];
-            });
-          }
-        }
-      }
-
+      console.log(`Fetching data from: ${API_BASE_URL}/${endpoint}`);
+      const response = await axios.get(`${API_BASE_URL}/${endpoint}`);
       return response.data;
     } catch (error) {
-      console.error(`Error ${method} ${endpoint}:`, error.response?.data || error.message);
+      console.error(`Error fetching ${endpoint}:`, error);
       throw error;
     }
   };
 
+  const updateData = async (endpoint, data, method = 'post') => {
+    try {
+      console.log(`${method.toUpperCase()} request to: ${API_BASE_URL}/${endpoint}`);
+      let response;
+      const url = `${API_BASE_URL}/${endpoint}`;
+
+      switch (method.toLowerCase()) {
+        case 'put':
+          response = await axios.put(url, data);
+          break;
+        case 'delete':
+          response = await axios.delete(url);
+          console.log(`Delete response:`, response);
+          
+          // For delete operations, immediately update the local state
+          if (endpoint.includes('/')) {
+            const [resourceType, resourceId] = endpoint.split('/');
+            const id = parseInt(resourceId);
+            
+            console.log(`Removing ${resourceType} with ID ${id} from state`);
+            setState(prev => ({
+              ...prev,
+              [resourceType]: prev[resourceType].filter(item => item.id !== id)
+            }));
+          }
+          break;
+        default:
+          response = await axios.post(url, data);
+      }
+
+      // Only refresh data for non-delete operations
+      if (method.toLowerCase() !== 'delete') {
+        await refreshData();
+      }
+      return response.data;
+    } catch (error) {
+      console.error(`Error ${method.toUpperCase()} ${endpoint}:`, error);
+      console.error('Response:', error.response?.data);
+      // Re-throw the error with the response error message if available
+      throw new Error(error.response?.data?.error || error.message);
+    }
+  };
+
+  const refreshData = async () => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      console.log('Refreshing all data...');
+      const [properties, units, tenants, owners, associations] = await Promise.all([
+        fetchData('properties'),
+        fetchData('units'),
+        fetchData('tenants'),
+        fetchData('owners'),
+        fetchData('associations')
+      ]);
+
+      console.log('Data refreshed successfully');
+      setState(prev => ({
+        ...prev,
+        properties: Array.isArray(properties) ? properties : [],
+        units: Array.isArray(units) ? units : [],
+        tenants: Array.isArray(tenants) ? tenants : [],
+        owners: Array.isArray(owners) ? owners : [],
+        associations: Array.isArray(associations) ? associations : [],
+        loading: false
+      }));
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message || 'Failed to fetch data'
+      }));
+    }
+  };
+
+  const formatPropertyAddress = (property) => {
+    if (!property?.addresses?.length) return 'No address available';
+    const primaryAddress = property.addresses.find(addr => addr.is_primary) || property.addresses[0];
+    return `${primaryAddress.street}, ${primaryAddress.city}, ${primaryAddress.state} ${primaryAddress.zip}`;
+  };
+
+  const getPropertyAddresses = (property) => {
+    if (!property?.addresses) return [];
+    return property.addresses.map(addr => ({
+      ...addr,
+      label: `${addr.street}, ${addr.city}, ${addr.state} ${addr.zip}`
+    }));
+  };
+
+  const getUnitsForAddress = (addressId) => {
+    if (!addressId || !state.units) return [];
+    return state.units.filter(unit => unit.address_id === addressId);
+  };
+
+  useEffect(() => {
+    refreshData();
+  }, []);
+
+  const contextValue = {
+    state,
+    setState,
+    updateData,
+    refreshData,
+    formatPropertyAddress,
+    getPropertyAddresses,
+    getUnitsForAddress
+  };
+
   return (
-    <AppContext.Provider
-      value={{
-        state: {
-          properties,
-          units,
-          tenants,
-          owners,
-          associations,
-          boardMembers,
-          accounts,
-          accountTypes,
-          transactions,
-          transactionTypes,
-          payments,
-          searchQuery,
-          loading,
-        },
-        setSearchQuery,
-        updateData,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );
 };
-
-const AppContext = createContext();
 
 export default AppContext;
