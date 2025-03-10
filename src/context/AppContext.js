@@ -52,6 +52,22 @@ const reducer = (state, action) => {
       return { ...state, addresses: action.payload };
     case 'SET_UNITS':
       return { ...state, units: action.payload };
+    case 'SET_LEASES':
+      return { ...state, leases: action.payload };
+    case 'ADD_LEASE':
+      return { ...state, leases: [...state.leases, action.payload] };
+    case 'UPDATE_LEASE':
+      return { 
+        ...state, 
+        leases: state.leases.map(lease => 
+          lease.id === action.payload.id ? action.payload : lease
+        ) 
+      };
+    case 'REMOVE_LEASE':
+      return { 
+        ...state, 
+        leases: state.leases.filter(lease => lease.id !== action.payload) 
+      };
     default:
       return state;
   }
@@ -96,6 +112,8 @@ export const AppProvider = ({ children }) => {
       } else if (endpoint.includes('units')) {
         return endpoint.includes('/') ? null : [];
       } else if (endpoint.includes('tenants')) {
+        return endpoint.includes('/') ? null : [];
+      } else if (endpoint.includes('leases')) {
         return endpoint.includes('/') ? null : [];
       }
       return null;

@@ -37,13 +37,13 @@ const NavBar = () => {
     { text: "Overview", path: "/overview", icon: <HomeIcon /> },
     { text: "Properties", path: "/rentals/properties", icon: <ApartmentIcon /> },
     { text: "Units", path: "/rentals/units", icon: <BusinessIcon /> },
+    { text: "Leases", path: "/rentals/leases", icon: <ArticleIcon /> },
     { text: "Tenants", path: "/people/tenants", icon: <PeopleIcon /> },
     { text: "Owners", path: "/people/owners", icon: <PersonIcon /> },
     { text: "Board Members", path: "/people/board-members", icon: <GroupsIcon /> },
     { text: "Accounting", path: "/accounting", icon: <AccountBalanceIcon /> },
     { text: "Reports", path: "/reports", icon: <AssessmentIcon /> },
     { text: "Associations", path: "/associations/associations", icon: <ApartmentIcon /> },
-    { text: "Leases", path: "/leases", icon: <ArticleIcon /> },
   ];
 
   const NavContent = () => (

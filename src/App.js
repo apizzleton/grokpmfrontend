@@ -5,6 +5,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import Overview from './pages/Overview';
 import RentalsProperties from './pages/RentalsProperties';
 import RentalsUnits from './pages/RentalsUnits';
+import RentalsLeases from './pages/RentalsLeases';
 import Accounting from './pages/Accounting';
 import PeopleTenants from './pages/PeopleTenants';
 import PeopleOwners from './pages/PeopleOwners';
@@ -15,7 +16,6 @@ import AssociationsProperties from './pages/AssociationsProperties';
 import AssociationsAssociations from './pages/AssociationsAssociations';
 import PropertyView from './pages/PropertyView';
 import UnitDetail from './pages/UnitDetail';
-import Leases from './pages/Leases';
 import NavBar from './components/NavBar';
 
 // Custom scrollbar styling
@@ -65,7 +65,7 @@ function App() {
                 <Route path="/reports/rent-roll" element={<RentRollReport />} />
                 <Route path="/associations/properties" element={<AssociationsProperties />} />
                 <Route path="/associations/associations" element={<AssociationsAssociations />} />
-                <Route path="/leases" element={<Leases />} />
+                <Route path="/rentals/leases" element={<RentalsLeases />} />
                 <Route path="/" element={<Navigate to="/overview" replace />} />
                 <Route path="*" element={<Navigate to="/overview" replace />} />
               </Routes>

@@ -21,7 +21,7 @@ import LeaseCard from '../components/LeaseCard';
 
 const RentalsLeases = () => {
   const { state, dispatch, fetchData, modifyData } = useApp();
-  const { leases = [], units = [], tenants = [] } = state;
+  const { leases = [], units = [], tenants = [], properties = [] } = state;
   const [open, setOpen] = useState(false);
   const [editLease, setEditLease] = useState(null);
   const [formData, setFormData] = useState({
@@ -43,6 +43,7 @@ const RentalsLeases = () => {
     loadLeases();
     loadUnits();
     loadTenants();
+    loadProperties();
   }, []);
 
   const loadLeases = async () => {
@@ -65,6 +66,13 @@ const RentalsLeases = () => {
     const data = await fetchData('tenants');
     if (data) {
       dispatch({ type: 'SET_DATA', payload: { tenants: data } });
+    }
+  };
+
+  const loadProperties = async () => {
+    const data = await fetchData('properties');
+    if (data) {
+      dispatch({ type: 'SET_DATA', payload: { properties: data } });
     }
   };
 
@@ -127,7 +135,15 @@ const RentalsLeases = () => {
 
   const getUnitName = (unitId) => {
     const unit = units.find(u => u.id === unitId);
-    return unit ? `${unit.unit_number} (${unit.property_name || 'Unknown Property'})` : 'Unknown Unit';
+    if (!unit) return 'Unknown Unit';
+    
+    // Find the property associated with this unit by property_id
+    const property = properties.find(p => p.id === unit.property_id);
+    
+    // Use property name if found, otherwise show property ID to help with debugging
+    const propertyName = property ? property.name : `Property ID: ${unit.property_id || 'None'}`;
+    
+    return `${unit.unit_number} (${propertyName})`;
   };
 
   const getTenantName = (tenantId) => {
@@ -269,7 +285,7 @@ const RentalsLeases = () => {
               >
                 {units.map((unit) => (
                   <MenuItem key={unit.id} value={unit.id}>
-                    {unit.unit_number} ({unit.property_name || 'Unknown Property'})
+                    {getUnitName(unit.id)}
                   </MenuItem>
                 ))}
               </TextField>

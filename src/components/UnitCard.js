@@ -11,12 +11,13 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  CircularProgress
+  CircularProgress,
+  Chip
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import { useNavigate } from 'react-router-dom';
 
-const UnitCard = ({ unit, onDelete, addressDetails }) => {
+const UnitCard = ({ unit, onDelete, onEdit, addressDetails }) => {
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -53,33 +54,51 @@ const UnitCard = ({ unit, onDelete, addressDetails }) => {
         '&:hover': { boxShadow: 6 }
       }}>
         <CardContent sx={{ flexGrow: 1 }}>
-          <Typography variant="h6" gutterBottom>
-            Unit #{unit.unit_number || 'N/A'}
-          </Typography>
-          <Typography variant="body1" color="text.secondary" gutterBottom>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <Typography 
+              variant="h6" 
+              component="div" 
+              sx={{ 
+                flexGrow: 1,
+                cursor: 'pointer',
+                '&:hover': { 
+                  color: 'primary.main',
+                  textDecoration: 'underline'
+                }
+              }}
+              onClick={() => navigate(`/rentals/units/${unit.id}`)}
+            >
+              Unit #{unit.unit_number || 'N/A'}
+            </Typography>
+            <Chip 
+              label={unit.status || 'vacant'}
+              color={unit.status === 'occupied' ? 'success' : 'warning'}
+              size="small"
+            />
+          </Box>
+          
+          <Typography variant="body2" color="text.secondary" gutterBottom>
             Property: {addressDetails || 'N/A'}
           </Typography>
-          <Typography variant="body1" gutterBottom>
+          
+          <Typography variant="body2" gutterBottom>
             Rent: ${unit.rent_amount || 0}
           </Typography>
-          <Box sx={{ 
-            display: 'inline-block', 
-            px: 1, 
-            py: 0.5, 
-            borderRadius: 1,
-            bgcolor: unit.status === 'occupied' ? 'success.light' : 'warning.light',
-            color: 'white'
-          }}>
-            {unit.status || 'N/A'}
-          </Box>
         </CardContent>
-        <CardActions>
+        <CardActions sx={{ justifyContent: 'flex-end', p: 1 }}>
           <Button 
             size="small" 
             onClick={() => navigate(`/rentals/units/${unit.id}`)}
             sx={{ color: 'primary.main' }}
           >
             View
+          </Button>
+          <Button 
+            size="small" 
+            onClick={() => onEdit(unit)}
+            sx={{ color: 'primary.main' }}
+          >
+            Edit
           </Button>
           <Button 
             size="small" 
