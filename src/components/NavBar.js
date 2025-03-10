@@ -47,7 +47,15 @@ const NavBar = () => {
   ];
 
   const NavContent = () => (
-    <Box sx={{ p: 2, width: "100%", boxSizing: "border-box", overflow: "hidden" }}>
+    <Box sx={{ 
+      p: 2, 
+      width: "100%", 
+      boxSizing: "border-box", 
+      height: "100%",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "auto" 
+    }}>
       <TextField
         fullWidth
         variant="outlined"
@@ -68,7 +76,7 @@ const NavBar = () => {
           }
         }}
       />
-      <List component="nav" sx={{ width: "100%" }}>
+      <List component="nav" sx={{ width: "100%", flexGrow: 1, overflow: "auto" }}>
         {menuItems.map((item) => (
           <ListItemButton
             key={item.text}
@@ -131,6 +139,8 @@ const NavBar = () => {
             borderRight: "none",
             borderRadius: "0 8px 8px 0",
             boxShadow: "4px 0 10px rgba(0, 0, 0, 0.1)",
+            height: "100%",
+            overflow: "hidden" // Prevent outer scrolling
           },
         }}
       >

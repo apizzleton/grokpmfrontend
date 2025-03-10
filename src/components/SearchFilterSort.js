@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, TextField, MenuItem, InputAdornment, Grid } from '@mui/material';
+import { Box, TextField, MenuItem, InputAdornment, Grid, useMediaQuery, useTheme } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 
 /**
@@ -38,10 +38,14 @@ const SearchFilterSort = ({
   propertyFilterOptions,
   propertyFilterLabel = 'Property'
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
   return (
     <Box sx={{ mb: 3 }}>
       <Grid container spacing={2} alignItems="center">
-        <Grid item xs={12} sm={6} md={4}>
+        {/* Search field always takes full width on mobile */}
+        <Grid item xs={12}>
           <TextField
             fullWidth
             variant="outlined"
@@ -59,8 +63,9 @@ const SearchFilterSort = ({
           />
         </Grid>
         
+        {/* Filter fields layout - responsive grid */}
         {filterOptions && (
-          <Grid item xs={6} sm={3} md={2}>
+          <Grid item xs={propertyFilterOptions ? 6 : 12} sm={propertyFilterOptions ? 4 : 6} md={2}>
             <TextField
               select
               fullWidth
@@ -80,7 +85,7 @@ const SearchFilterSort = ({
         )}
         
         {propertyFilterOptions && (
-          <Grid item xs={6} sm={3} md={2}>
+          <Grid item xs={6} sm={4} md={2}>
             <TextField
               select
               fullWidth
@@ -100,7 +105,7 @@ const SearchFilterSort = ({
         )}
         
         {sortOptions && (
-          <Grid item xs={6} sm={3} md={2}>
+          <Grid item xs={propertyFilterOptions || filterOptions ? 12 : 6} sm={4} md={2}>
             <TextField
               select
               fullWidth
