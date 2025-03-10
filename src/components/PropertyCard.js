@@ -4,7 +4,7 @@ import {
   CardContent,
   CardActions,
   Typography,
-  IconButton,
+  Button,
   Box,
   Chip,
   List,
@@ -19,9 +19,9 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Button
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import StarIcon from '@mui/icons-material/Star';
 import HomeIcon from '@mui/icons-material/Home';
@@ -32,11 +32,11 @@ import { useSnackbar } from 'notistack';
 import AppContext from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 
-const PropertyCard = ({ property, onDelete }) => {
-  const { getPropertyAddresses, getUnitsForAddress } = useContext(AppContext);
+const PropertyCard = ({ property, onDelete, onEdit }) => {
+  const { getUnitsForAddress } = useContext(AppContext);
   const { enqueueSnackbar } = useSnackbar();
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
-  const addresses = getPropertyAddresses(property);
+  const addresses = property.addresses || [];
   const navigate = useNavigate();
   
   const getPropertyTypeIcon = (type) => {
@@ -94,7 +94,20 @@ const PropertyCard = ({ property, onDelete }) => {
         <CardContent sx={{ flexGrow: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             {getPropertyTypeIcon(property.property_type)}
-            <Typography variant="h6" component="div" sx={{ ml: 1, flexGrow: 1 }}>
+            <Typography 
+              variant="h6" 
+              component="div" 
+              sx={{ 
+                ml: 1, 
+                flexGrow: 1,
+                cursor: 'pointer',
+                '&:hover': { 
+                  color: 'primary.main',
+                  textDecoration: 'underline'
+                }
+              }}
+              onClick={() => navigate(`/rentals/properties/${property.id}`)}
+            >
               {property.name || 'Unnamed Property'}
             </Typography>
             <Chip 
@@ -112,7 +125,7 @@ const PropertyCard = ({ property, onDelete }) => {
 
           <List dense>
             {addresses.map((address) => {
-              const units = getUnitsForAddress(address.id);
+              const units = address.units || [];
               return (
                 <ListItem 
                   key={address.id}
@@ -148,20 +161,27 @@ const PropertyCard = ({ property, onDelete }) => {
         </CardContent>
 
         <CardActions sx={{ justifyContent: 'flex-end', p: 1 }}>
-          <IconButton 
+          <Button 
             size="small" 
             onClick={() => navigate(`/rentals/properties/${property.id}`)}
-            color="primary"
+            sx={{ color: 'primary.main' }}
           >
-            <VisibilityIcon />
-          </IconButton>
-          <IconButton 
+            View
+          </Button>
+          <Button 
+            size="small" 
+            onClick={() => onEdit(property)}
+            sx={{ color: 'primary.main' }}
+          >
+            Edit
+          </Button>
+          <Button 
             size="small" 
             onClick={handleDeleteClick}
-            color="error"
+            sx={{ color: 'error.main' }}
           >
-            <DeleteIcon />
-          </IconButton>
+            Delete
+          </Button>
         </CardActions>
       </Card>
 

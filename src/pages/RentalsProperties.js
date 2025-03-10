@@ -27,7 +27,7 @@ import PropertyCard from '../components/PropertyCard';
 import { useSnackbar } from 'notistack';
 
 const RentalsProperties = () => {
-  const { state, modifyData, setState, fetchData } = useContext(AppContext);
+  const { state, dispatch, modifyData, fetchData } = useContext(AppContext);
   const { enqueueSnackbar } = useSnackbar();
   const [filter, setFilter] = useState('all');
   const [sortOrder, setSortOrder] = useState('asc');
@@ -58,7 +58,8 @@ const RentalsProperties = () => {
   const loadProperties = async () => {
     const data = await fetchData('properties');
     if (data) {
-      setState(prev => ({ ...prev, properties: data }));
+      console.log('Available properties:', data);
+      dispatch({ type: 'SET_PROPERTIES', payload: data });
     }
   };
 
@@ -74,19 +75,19 @@ const RentalsProperties = () => {
     if (property) {
       setEditProperty(property);
       setFormData({
-        name: property.name,
+        name: property.name || '',
         property_type: property.property_type || 'residential',
         status: property.status || 'active',
         value: property.value || '',
         owner_id: property.owner_id || null,
-        addresses: property.addresses?.length > 0 
+        addresses: property.addresses && property.addresses.length > 0 
           ? property.addresses.map(addr => ({
               id: addr.id,
-              street: addr.street,
-              city: addr.city,
-              state: addr.state,
-              zip: addr.zip,
-              is_primary: addr.is_primary
+              street: addr.street || '',
+              city: addr.city || '',
+              state: addr.state || '',
+              zip: addr.zip || '',
+              is_primary: addr.is_primary || false
             }))
           : [{
               street: '',
@@ -210,7 +211,12 @@ const RentalsProperties = () => {
         ...formData,
         value: formData.value === '' ? 0 : parseFloat(formData.value),
         owner_id: formData.owner_id || null,
-        addresses: formData.addresses.map(addr => ({
+        addresses: formData.addresses.filter(addr => 
+          addr.street.trim() !== '' || 
+          addr.city.trim() !== '' || 
+          addr.state.trim() !== '' || 
+          addr.zip.trim() !== ''
+        ).map(addr => ({
           ...addr,
           street: addr.street.trim(),
           city: addr.city.trim(),
@@ -244,10 +250,7 @@ const RentalsProperties = () => {
       const success = await modifyData('DELETE', `properties/${propertyId}`);
       
       if (success) {
-        setState(prev => ({
-          ...prev,
-          properties: prev.properties.filter(p => p.id !== propertyId)
-        }));
+        dispatch({ type: 'REMOVE_PROPERTY', payload: propertyId });
         enqueueSnackbar('Property deleted successfully', { variant: 'success' });
       }
     } catch (error) {
@@ -290,49 +293,32 @@ const RentalsProperties = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" gutterBottom>Properties</Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <TextField
-            label="Search Properties"
-            value={filterLocation}
-            onChange={handleFilterLocationChange}
-            size="small"
-            sx={{ flexGrow: 1 }}
-            placeholder="Search by address, city, state, or ZIP..."
-          />
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4">Properties</Typography>
+        <Box>
           <TextField
             select
-            label="Status"
+            label="Filter"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
+            sx={{ mr: 2, minWidth: 120 }}
             size="small"
-            sx={{ minWidth: 120 }}
           >
-            <MenuItem value="all">All Properties</MenuItem>
+            <MenuItem value="all">All</MenuItem>
             <MenuItem value="active">Active</MenuItem>
             <MenuItem value="inactive">Inactive</MenuItem>
           </TextField>
           <TextField
             select
-            label="Sort By"
-            value={sortBy}
-            onChange={handleSortChange}
+            label="Sort"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            sx={{ mr: 2, minWidth: 120 }}
             size="small"
-            sx={{ minWidth: 150 }}
           >
-            <MenuItem value="name">Name {sortOrder === 'asc' ? '(A-Z)' : '(Z-A)'}</MenuItem>
-            <MenuItem value="value">Property Value</MenuItem>
-            <MenuItem value="rent">Rent Amount</MenuItem>
+            <MenuItem value="asc">A-Z</MenuItem>
+            <MenuItem value="desc">Z-A</MenuItem>
           </TextField>
-          {sortBy === 'name' && (
-            <IconButton 
-              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              size="small"
-            >
-              {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
-            </IconButton>
-          )}
           <Button
             variant="contained"
             onClick={() => handleClickOpen()}
@@ -342,6 +328,15 @@ const RentalsProperties = () => {
           </Button>
         </Box>
       </Box>
+
+      <TextField
+        label="Filter by location"
+        variant="outlined"
+        fullWidth
+        value={filterLocation}
+        onChange={(e) => setFilterLocation(e.target.value)}
+        sx={{ mb: 3 }}
+      />
 
       {state.loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
@@ -365,10 +360,10 @@ const RentalsProperties = () => {
         <Grid container spacing={3}>
           {filteredProperties.map((property) => (
             <Grid item xs={12} sm={6} md={4} key={property.id}>
-              <PropertyCard
-                property={property}
-                onEdit={handleClickOpen}
+              <PropertyCard 
+                property={property} 
                 onDelete={handleDelete}
+                onEdit={handleClickOpen}
               />
             </Grid>
           ))}

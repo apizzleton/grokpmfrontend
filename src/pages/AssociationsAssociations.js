@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, MenuItem, Pagination } from '@mui/material';
+import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, MenuItem, Pagination, Container, Typography } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import SearchFilterSort from '../components/SearchFilterSort';
+import AssociationCard from '../components/AssociationCard';
 
 const AssociationsAssociations = () => {
-  const [associations, setAssociations] = useState([]);
+  const { state, dispatch, fetchData, modifyData } = useApp();
+  const { associations = [], properties = [] } = state;
   const [open, setOpen] = useState(false);
   const [editAssociation, setEditAssociation] = useState(null);
   const [formData, setFormData] = useState({
@@ -14,19 +18,27 @@ const AssociationsAssociations = () => {
     property_id: ''
   });
   const [page, setPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('name');
   const itemsPerPage = 5;
-
-  const { fetchData, modifyData } = useApp();
 
   useEffect(() => {
     loadAssociations();
+    loadProperties();
   }, []);
 
   const loadAssociations = async () => {
     const data = await fetchData('associations');
     if (data) {
-      setAssociations(data);
+      dispatch({ type: 'SET_DATA', payload: { associations: data } });
+    }
+  };
+
+  const loadProperties = async () => {
+    const data = await fetchData('properties');
+    if (data) {
+      dispatch({ type: 'SET_DATA', payload: { properties: data } });
     }
   };
 
@@ -89,35 +101,58 @@ const AssociationsAssociations = () => {
   };
 
   const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value.toLowerCase());
+    setSearchTerm(e.target.value.toLowerCase());
     setPage(1);
   };
 
   const filteredAssociations = associations.filter(association =>
-    (association.name?.toLowerCase().includes(searchQuery) ||
-     association.contact_info?.toLowerCase().includes(searchQuery))
+    (association.name?.toLowerCase().includes(searchTerm) ||
+     association.contact_info?.toLowerCase().includes(searchTerm))
   );
 
-  const paginatedAssociations = filteredAssociations.slice(
+  const sortedAssociations = filteredAssociations.sort((a, b) => {
+    if (sortBy === 'name') {
+      return a.name.localeCompare(b.name);
+    } else if (sortBy === 'fee') {
+      return a.fee - b.fee;
+    } else {
+      return 0;
+    }
+  });
+
+  const paginatedAssociations = sortedAssociations.slice(
     (page - 1) * itemsPerPage,
     page * itemsPerPage
   );
 
   return (
-    <Box sx={{ p: 3 }}>
-      <h2>Associations</h2>
+    <Container maxWidth="lg">
+      <Typography variant="h2" sx={{ mb: 3 }}>Associations</Typography>
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <TextField
-          label="Search Associations"
-          variant="outlined"
-          size="small"
-          value={searchQuery}
-          onChange={handleSearchChange}
-          sx={{ width: 300 }}
+        <SearchFilterSort
+          searchTerm={searchTerm}
+          onSearchChange={(e) => setSearchTerm(e.target.value)}
+          filterValue={filter}
+          onFilterChange={(e) => setFilter(e.target.value)}
+          filterOptions={[
+            { value: 'all', label: 'All Associations' },
+            { value: 'high_fee', label: 'High Fee (>$500)' },
+            { value: 'low_fee', label: 'Low Fee (<=$500)' }
+          ]}
+          filterLabel="Fee Range"
+          sortBy={sortBy}
+          onSortChange={(e) => setSortBy(e.target.value)}
+          sortOptions={[
+            { value: 'name', label: 'Name' },
+            { value: 'fee', label: 'Fee Amount' }
+          ]}
+          sortLabel="Sort By"
+          searchPlaceholder="Search associations..."
         />
         <Button
           variant="contained"
           onClick={() => handleClickOpen()}
+          startIcon={<AddIcon />}
           sx={{ backgroundColor: '#4a90e2', '&:hover': { backgroundColor: '#357abd' } }}
         >
           Add Association
@@ -129,22 +164,17 @@ const AssociationsAssociations = () => {
           {paginatedAssociations.map((association, index) => (
             association && association.id ? (
               <Grid item xs={12} sm={6} md={4} key={association.id}>
-                <Box sx={{ border: '1px solid #ccc', p: 2, mb: 2, borderRadius: 4, boxShadow: 1, '&:hover': { boxShadow: 3 } }}>
-                  <p>Name: {association.name || 'N/A'}</p>
-                  <p>Contact: {association.contact_info || 'N/A'}</p>
-                  <p>Fee: ${association.fee || '0'}</p>
-                  <p>Due Date: {new Date(association.due_date).toLocaleDateString()}</p>
-                  <Box sx={{ mt: 1 }}>
-                    <Button sx={{ mr: 1, backgroundColor: '#4a90e2', color: 'white', '&:hover': { backgroundColor: '#357abd' } }} onClick={() => handleClickOpen(association)}>Edit</Button>
-                    <Button sx={{ backgroundColor: '#e74c3c', color: 'white', '&:hover': { backgroundColor: '#c0392b' } }} onClick={() => handleDelete(association.id)}>Delete</Button>
-                  </Box>
-                </Box>
+                <AssociationCard
+                  association={association}
+                  handleEdit={() => handleClickOpen(association)}
+                  handleDelete={() => handleDelete(association.id)}
+                />
               </Grid>
             ) : null
           ))}
         </Grid>
       ) : (
-        <p>No associations found.</p>
+        <Typography variant="body1">No associations found.</Typography>
       )}
 
       {filteredAssociations.length > itemsPerPage && (
@@ -210,7 +240,7 @@ const AssociationsAssociations = () => {
           <Button onClick={handleSave}>Save</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Container>
   );
 };
 

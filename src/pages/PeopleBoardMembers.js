@@ -1,25 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, MenuItem, Pagination } from '@mui/material';
+import { Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, MenuItem, Pagination, Container, Typography } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import SearchFilterSort from '../components/SearchFilterSort';
+import BoardMemberCard from '../components/BoardMemberCard';
 
 const PeopleBoardMembers = () => {
-  const { fetchData, modifyData } = useApp();
-  const [boardMembers, setBoardMembers] = useState([]);
+  const { state, dispatch, fetchData, modifyData } = useApp();
+  const { boardMembers = [], associations = [] } = state;
   const [open, setOpen] = useState(false);
   const [editMember, setEditMember] = useState(null);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', association_id: '', role: '' });
   const [page, setPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('name');
   const itemsPerPage = 5;
 
   useEffect(() => {
     loadBoardMembers();
+    loadAssociations();
   }, []);
 
   const loadBoardMembers = async () => {
     const data = await fetchData('board-members');
     if (data) {
-      setBoardMembers(data);
+      dispatch({ type: 'SET_DATA', payload: { boardMembers: data } });
+    }
+  };
+
+  const loadAssociations = async () => {
+    const data = await fetchData('associations');
+    if (data) {
+      dispatch({ type: 'SET_DATA', payload: { associations: data } });
     }
   };
 
@@ -82,34 +95,61 @@ const PeopleBoardMembers = () => {
   };
 
   const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value.toLowerCase());
+    setSearchTerm(e.target.value.toLowerCase());
     setPage(1);
   };
 
   const filteredBoardMembers = boardMembers.filter(member =>
-    (member.name?.toLowerCase().includes(searchQuery) ||
-     member.email?.toLowerCase().includes(searchQuery))
+    (member.name?.toLowerCase().includes(searchTerm) ||
+     member.email?.toLowerCase().includes(searchTerm))
   );
 
-  const paginatedBoardMembers = filteredBoardMembers.slice(
+  const sortedBoardMembers = filteredBoardMembers.sort((a, b) => {
+    if (sortBy === 'name') {
+      return a.name.localeCompare(b.name);
+    } else if (sortBy === 'email') {
+      return a.email.localeCompare(b.email);
+    } else if (sortBy === 'role') {
+      return a.role.localeCompare(b.role);
+    }
+  });
+
+  const paginatedBoardMembers = sortedBoardMembers.slice(
     (page - 1) * itemsPerPage,
     page * itemsPerPage
   );
 
   return (
-    <Box sx={{ p: 3 }}>
-      <h2>Board Members</h2>
+    <Container maxWidth="lg">
+      <Typography variant="h2" component="h2" sx={{ mb: 3 }}>
+        Board Members
+      </Typography>
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <TextField
-          label="Search Board Members"
-          variant="outlined"
-          size="small"
-          value={searchQuery}
-          onChange={handleSearchChange}
-          sx={{ width: 300 }}
+        <SearchFilterSort
+          searchTerm={searchTerm}
+          onSearchChange={(e) => setSearchTerm(e.target.value)}
+          filterValue={filter}
+          onFilterChange={(e) => setFilter(e.target.value)}
+          filterOptions={[
+            { value: 'all', label: 'All Members' },
+            { value: 'president', label: 'President' },
+            { value: 'treasurer', label: 'Treasurer' },
+            { value: 'secretary', label: 'Secretary' }
+          ]}
+          filterLabel="Role"
+          sortBy={sortBy}
+          onSortChange={(e) => setSortBy(e.target.value)}
+          sortOptions={[
+            { value: 'name', label: 'Name' },
+            { value: 'email', label: 'Email' },
+            { value: 'role', label: 'Role' }
+          ]}
+          sortLabel="Sort By"
+          searchPlaceholder="Search board members..."
         />
         <Button
           variant="contained"
+          startIcon={<AddIcon />}
           onClick={() => handleClickOpen()}
           sx={{ backgroundColor: '#4a90e2', '&:hover': { backgroundColor: '#357abd' } }}
         >
@@ -122,28 +162,25 @@ const PeopleBoardMembers = () => {
           {paginatedBoardMembers.map((member) => (
             member && member.id ? (
               <Grid item xs={12} sm={6} md={4} key={member.id}>
-                <Box sx={{ border: '1px solid #ccc', p: 2, mb: 2, borderRadius: 4, boxShadow: 1, '&:hover': { boxShadow: 3 } }}>
-                  <p>Name: {member.name || 'N/A'}</p>
-                  <p>Email: {member.email || 'N/A'}</p>
-                  <p>Phone: {member.phone || 'N/A'}</p>
-                  <p>Role: {member.role || 'N/A'}</p>
-                  <Box sx={{ mt: 1 }}>
-                    <Button sx={{ mr: 1, backgroundColor: '#4a90e2', color: 'white', '&:hover': { backgroundColor: '#357abd' } }} onClick={() => handleClickOpen(member)}>Edit</Button>
-                    <Button sx={{ backgroundColor: '#e74c3c', color: 'white', '&:hover': { backgroundColor: '#c0392b' } }} onClick={() => handleDelete(member.id)}>Delete</Button>
-                  </Box>
-                </Box>
+                <BoardMemberCard
+                  member={member}
+                  handleEdit={() => handleClickOpen(member)}
+                  handleDelete={() => handleDelete(member.id)}
+                />
               </Grid>
             ) : null
           ))}
         </Grid>
       ) : (
-        <p>No board members found.</p>
+        <Typography variant="body1" component="p">
+          No board members found.
+        </Typography>
       )}
 
-      {filteredBoardMembers.length > itemsPerPage && (
+      {sortedBoardMembers.length > itemsPerPage && (
         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
           <Pagination
-            count={Math.ceil(filteredBoardMembers.length / itemsPerPage)}
+            count={Math.ceil(sortedBoardMembers.length / itemsPerPage)}
             page={page}
             onChange={(e, value) => setPage(value)}
             color="primary"
@@ -201,7 +238,7 @@ const PeopleBoardMembers = () => {
           <Button onClick={handleSave}>Save</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Container>
   );
 };
 

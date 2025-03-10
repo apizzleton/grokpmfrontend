@@ -16,7 +16,7 @@ import {
 import { useSnackbar } from 'notistack';
 import { useNavigate } from 'react-router-dom';
 
-const UnitCard = ({ unit, onDelete, propertyAddress }) => {
+const UnitCard = ({ unit, onDelete, addressDetails }) => {
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -57,7 +57,7 @@ const UnitCard = ({ unit, onDelete, propertyAddress }) => {
             Unit #{unit.unit_number || 'N/A'}
           </Typography>
           <Typography variant="body1" color="text.secondary" gutterBottom>
-            Property: {propertyAddress || 'N/A'}
+            Property: {addressDetails || 'N/A'}
           </Typography>
           <Typography variant="body1" gutterBottom>
             Rent: ${unit.rent_amount || 0}

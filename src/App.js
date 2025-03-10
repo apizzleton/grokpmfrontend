@@ -9,9 +9,10 @@ import PeopleTenants from './pages/PeopleTenants';
 import PeopleOwners from './pages/PeopleOwners';
 import PeopleBoardMembers from './pages/PeopleBoardMembers';
 import Reports from './pages/Reports';
+import RentRollReport from './pages/reports/RentRollReport';
 import AssociationsProperties from './pages/AssociationsProperties';
 import AssociationsAssociations from './pages/AssociationsAssociations';
-import PropertyDetail from './pages/PropertyDetail';
+import PropertyView from './pages/PropertyView';
 import UnitDetail from './pages/UnitDetail';
 import Leases from './pages/Leases';
 import NavBar from './components/NavBar';
@@ -26,7 +27,7 @@ function App() {
             <Routes>
               <Route path="/overview" element={<Overview />} />
               <Route path="/rentals/properties" element={<RentalsProperties />} />
-              <Route path="/rentals/properties/:id" element={<PropertyDetail />} />
+              <Route path="/rentals/properties/:id" element={<PropertyView />} />
               <Route path="/rentals/units" element={<RentalsUnits />} />
               <Route path="/rentals/units/:id" element={<UnitDetail />} />
               <Route path="/accounting" element={<Accounting />} />
@@ -34,6 +35,7 @@ function App() {
               <Route path="/people/owners" element={<PeopleOwners />} />
               <Route path="/people/board-members" element={<PeopleBoardMembers />} />
               <Route path="/reports" element={<Reports />} />
+              <Route path="/reports/rent-roll" element={<RentRollReport />} />
               <Route path="/associations/properties" element={<AssociationsProperties />} />
               <Route path="/associations/associations" element={<AssociationsAssociations />} />
               <Route path="/leases" element={<Leases />} />

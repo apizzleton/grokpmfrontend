@@ -5,7 +5,6 @@ import PropertyCard from '../components/PropertyCard';
 import SearchIcon from '@mui/icons-material/Search';
 
 const AssociationsProperties = () => {
-  const [properties, setProperties] = useState([]);
   const [open, setOpen] = useState(false);
   const [editProperty, setEditProperty] = useState(null);
   const [formData, setFormData] = useState({ address: '', city: '', state: '', zip: '', value: '', owner_id: '' });
@@ -13,7 +12,8 @@ const AssociationsProperties = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('address');
   const itemsPerPage = 5;
-  const { fetchData, modifyData } = useApp();
+  const { state, dispatch, fetchData, modifyData } = useApp();
+  const { properties } = state;
 
   useEffect(() => {
     loadProperties();
@@ -22,14 +22,14 @@ const AssociationsProperties = () => {
   const loadProperties = async () => {
     const data = await fetchData('properties');
     if (data) {
-      setProperties(data);
+      dispatch({ type: 'SET_PROPERTIES', payload: data });
     }
   };
 
   const handleDelete = async (id) => {
     const success = await modifyData('DELETE', `properties/${id}`);
     if (success) {
-      loadProperties();
+      dispatch({ type: 'REMOVE_PROPERTY', payload: id });
     }
   };
 
