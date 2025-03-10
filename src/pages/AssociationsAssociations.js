@@ -126,38 +126,38 @@ const AssociationsAssociations = () => {
   );
 
   return (
-    <Container maxWidth="lg">
-      <Typography variant="h2" sx={{ mb: 3 }}>Associations</Typography>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <SearchFilterSort
-          searchTerm={searchTerm}
-          onSearchChange={(e) => setSearchTerm(e.target.value)}
-          filterValue={filter}
-          onFilterChange={(e) => setFilter(e.target.value)}
-          filterOptions={[
-            { value: 'all', label: 'All Associations' },
-            { value: 'high_fee', label: 'High Fee (>$500)' },
-            { value: 'low_fee', label: 'Low Fee (<=$500)' }
-          ]}
-          filterLabel="Fee Range"
-          sortBy={sortBy}
-          onSortChange={(e) => setSortBy(e.target.value)}
-          sortOptions={[
-            { value: 'name', label: 'Name' },
-            { value: 'fee', label: 'Fee Amount' }
-          ]}
-          sortLabel="Sort By"
-          searchPlaceholder="Search associations..."
-        />
+    <Container>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+        <Typography variant="h4" component="h1">Associations</Typography>
         <Button
           variant="contained"
           onClick={() => handleClickOpen()}
           startIcon={<AddIcon />}
-          sx={{ backgroundColor: '#4a90e2', '&:hover': { backgroundColor: '#357abd' } }}
         >
           Add Association
         </Button>
       </Box>
+
+      <SearchFilterSort
+        searchTerm={searchTerm}
+        onSearchChange={(e) => setSearchTerm(e.target.value)}
+        filterValue={filter}
+        onFilterChange={(e) => setFilter(e.target.value)}
+        filterOptions={[
+          { value: 'all', label: 'All Associations' },
+          { value: 'high_fee', label: 'High Fee (>$500)' },
+          { value: 'low_fee', label: 'Low Fee (<=$500)' }
+        ]}
+        filterLabel="Fee Range"
+        sortBy={sortBy}
+        onSortChange={(e) => setSortBy(e.target.value)}
+        sortOptions={[
+          { value: 'name', label: 'Name' },
+          { value: 'fee', label: 'Fee Amount' }
+        ]}
+        sortLabel="Sort By"
+        searchPlaceholder="Search associations..."
+      />
 
       {associations.length > 0 ? (
         <Grid container spacing={2}>

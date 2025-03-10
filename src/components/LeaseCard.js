@@ -10,19 +10,29 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import HomeIcon from '@mui/icons-material/Home';
+import PersonIcon from '@mui/icons-material/Person';
+import DateRangeIcon from '@mui/icons-material/DateRange';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 
-const LeaseCard = ({ lease, onEdit, onDelete, isDeleting }) => {
+const LeaseCard = ({ lease, unitName, tenantName, onEdit, onDelete }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'active':
         return 'success';
       case 'expired':
         return 'error';
-      case 'terminated':
-        return 'warning';
+      case 'upcoming':
+        return 'info';
       default:
         return 'default';
     }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
   };
 
   return (
@@ -38,8 +48,8 @@ const LeaseCard = ({ lease, onEdit, onDelete, isDeleting }) => {
     }}>
       <CardContent sx={{ flexGrow: 1 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Typography variant="h6" component="div">
-            {lease.tenant_name}
+          <Typography variant="h6" component="div" noWrap>
+            {unitName}
           </Typography>
           <Chip 
             label={lease.status.charAt(0).toUpperCase() + lease.status.slice(1)}
@@ -48,38 +58,33 @@ const LeaseCard = ({ lease, onEdit, onDelete, isDeleting }) => {
           />
         </Box>
         
-        <Typography color="text.secondary" gutterBottom>
-          Unit: {lease.Unit?.unit_number}
-        </Typography>
-        <Typography color="text.secondary" gutterBottom>
-          Property: {lease.Property?.name}
-        </Typography>
-        
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            Start Date: {new Date(lease.start_date).toLocaleDateString()}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            End Date: {new Date(lease.end_date).toLocaleDateString()}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Monthly Rent: ${Number(lease.monthly_rent).toLocaleString()}
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+          <PersonIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+          <Typography color="text.secondary" noWrap>
+            {tenantName}
           </Typography>
         </Box>
-
-        {lease.notes && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Notes: {lease.notes}
+        
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+          <AttachMoneyIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+          <Typography color="text.secondary">
+            ${Number(lease.rent_amount).toLocaleString()}/month
           </Typography>
-        )}
+        </Box>
+        
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+          <DateRangeIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+          <Typography variant="body2" color="text.secondary">
+            {formatDate(lease.start_date)} - {formatDate(lease.end_date)}
+          </Typography>
+        </Box>
       </CardContent>
 
       <Box sx={{ p: 1, display: 'flex', justifyContent: 'flex-end' }}>
         <Tooltip title="Edit Lease">
           <IconButton 
             size="small" 
-            onClick={() => onEdit(lease)}
-            disabled={isDeleting}
+            onClick={onEdit}
           >
             <EditIcon />
           </IconButton>
@@ -87,8 +92,7 @@ const LeaseCard = ({ lease, onEdit, onDelete, isDeleting }) => {
         <Tooltip title="Delete Lease">
           <IconButton 
             size="small" 
-            onClick={() => onDelete(lease.id)}
-            disabled={isDeleting}
+            onClick={onDelete}
             color="error"
           >
             <DeleteIcon />

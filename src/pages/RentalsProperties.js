@@ -16,7 +16,8 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   Chip,
-  CircularProgress
+  CircularProgress,
+  Container
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
@@ -25,6 +26,7 @@ import StarBorderIcon from '@mui/icons-material/StarBorder';
 import AppContext from '../context/AppContext';
 import PropertyCard from '../components/PropertyCard';
 import { useSnackbar } from 'notistack';
+import SearchFilterSort from '../components/SearchFilterSort';
 
 const RentalsProperties = () => {
   const { state, dispatch, modifyData, fetchData } = useContext(AppContext);
@@ -292,50 +294,37 @@ const RentalsProperties = () => {
     });
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Container>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <Typography variant="h4">Properties</Typography>
-        <Box>
-          <TextField
-            select
-            label="Filter"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            sx={{ mr: 2, minWidth: 120 }}
-            size="small"
-          >
-            <MenuItem value="all">All</MenuItem>
-            <MenuItem value="active">Active</MenuItem>
-            <MenuItem value="inactive">Inactive</MenuItem>
-          </TextField>
-          <TextField
-            select
-            label="Sort"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            sx={{ mr: 2, minWidth: 120 }}
-            size="small"
-          >
-            <MenuItem value="asc">A-Z</MenuItem>
-            <MenuItem value="desc">Z-A</MenuItem>
-          </TextField>
-          <Button
-            variant="contained"
-            onClick={() => handleClickOpen()}
-            startIcon={<AddIcon />}
-          >
-            Add Property
-          </Button>
-        </Box>
+        <Button
+          variant="contained"
+          onClick={() => handleClickOpen()}
+          startIcon={<AddIcon />}
+        >
+          Add Property
+        </Button>
       </Box>
 
-      <TextField
-        label="Filter by location"
-        variant="outlined"
-        fullWidth
-        value={filterLocation}
-        onChange={(e) => setFilterLocation(e.target.value)}
-        sx={{ mb: 3 }}
+      <SearchFilterSort
+        searchTerm={filterLocation}
+        onSearchChange={(e) => setFilterLocation(e.target.value)}
+        filterValue={filter}
+        onFilterChange={(e) => setFilter(e.target.value)}
+        filterOptions={[
+          { value: 'all', label: 'All Properties' },
+          { value: 'active', label: 'Active' },
+          { value: 'inactive', label: 'Inactive' }
+        ]}
+        filterLabel="Status"
+        sortBy={sortBy}
+        onSortChange={(e) => setSortBy(e.target.value)}
+        sortOptions={[
+          { value: 'name', label: 'Name' },
+          { value: 'value', label: 'Value' }
+        ]}
+        sortLabel="Sort By"
+        searchPlaceholder="Search properties by location..."
       />
 
       {state.loading ? (
@@ -498,7 +487,7 @@ const RentalsProperties = () => {
           <Button onClick={handleSave} variant="contained">Save</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Container>
   );
 };
 

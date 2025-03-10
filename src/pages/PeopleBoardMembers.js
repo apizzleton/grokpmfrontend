@@ -120,42 +120,40 @@ const PeopleBoardMembers = () => {
   );
 
   return (
-    <Container maxWidth="lg">
-      <Typography variant="h2" component="h2" sx={{ mb: 3 }}>
-        Board Members
-      </Typography>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <SearchFilterSort
-          searchTerm={searchTerm}
-          onSearchChange={(e) => setSearchTerm(e.target.value)}
-          filterValue={filter}
-          onFilterChange={(e) => setFilter(e.target.value)}
-          filterOptions={[
-            { value: 'all', label: 'All Members' },
-            { value: 'president', label: 'President' },
-            { value: 'treasurer', label: 'Treasurer' },
-            { value: 'secretary', label: 'Secretary' }
-          ]}
-          filterLabel="Role"
-          sortBy={sortBy}
-          onSortChange={(e) => setSortBy(e.target.value)}
-          sortOptions={[
-            { value: 'name', label: 'Name' },
-            { value: 'email', label: 'Email' },
-            { value: 'role', label: 'Role' }
-          ]}
-          sortLabel="Sort By"
-          searchPlaceholder="Search board members..."
-        />
+    <Container>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+        <Typography variant="h4" component="h1">Board Members</Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => handleClickOpen()}
-          sx={{ backgroundColor: '#4a90e2', '&:hover': { backgroundColor: '#357abd' } }}
         >
           Add Board Member
         </Button>
       </Box>
+
+      <SearchFilterSort
+        searchTerm={searchTerm}
+        onSearchChange={(e) => setSearchTerm(e.target.value)}
+        filterValue={filter}
+        onFilterChange={(e) => setFilter(e.target.value)}
+        filterOptions={[
+          { value: 'all', label: 'All Members' },
+          { value: 'president', label: 'President' },
+          { value: 'treasurer', label: 'Treasurer' },
+          { value: 'secretary', label: 'Secretary' }
+        ]}
+        filterLabel="Role"
+        sortBy={sortBy}
+        onSortChange={(e) => setSortBy(e.target.value)}
+        sortOptions={[
+          { value: 'name', label: 'Name' },
+          { value: 'email', label: 'Email' },
+          { value: 'role', label: 'Role' }
+        ]}
+        sortLabel="Sort By"
+        searchPlaceholder="Search board members..."
+      />
 
       {boardMembers.length > 0 ? (
         <Grid container spacing={2}>

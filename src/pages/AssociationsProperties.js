@@ -90,16 +90,24 @@ const AssociationsProperties = () => {
 
   return (
     <Container>
-      <Typography variant="h4" gutterBottom>
-        Properties
-      </Typography>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+        <Typography variant="h4" component="h1">Properties</Typography>
+        <Button
+          variant="contained"
+          onClick={() => handleClickOpen()}
+          startIcon={<SearchIcon />}
+        >
+          Add Property
+        </Button>
+      </Box>
       
-      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
+      <Box sx={{ mb: 3 }}>
         <TextField
           placeholder="Search properties..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ flexGrow: 1 }}
+          fullWidth
+          sx={{ mb: 2 }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -108,22 +116,21 @@ const AssociationsProperties = () => {
             ),
           }}
         />
-        <FormControl sx={{ minWidth: 120 }}>
-          <InputLabel>Sort By</InputLabel>
-          <Select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            label="Sort By"
-          >
-            <MenuItem value="address">Address</MenuItem>
-            <MenuItem value="city">City</MenuItem>
-            <MenuItem value="state">State</MenuItem>
-            <MenuItem value="value">Value</MenuItem>
-          </Select>
-        </FormControl>
-        <Button variant="contained" onClick={() => handleClickOpen()}>
-          Add Property
-        </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <FormControl sx={{ minWidth: 120 }}>
+            <InputLabel>Sort By</InputLabel>
+            <Select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              label="Sort By"
+            >
+              <MenuItem value="address">Address</MenuItem>
+              <MenuItem value="city">City</MenuItem>
+              <MenuItem value="state">State</MenuItem>
+              <MenuItem value="value">Value</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
       </Box>
 
       <Grid container spacing={3}>
