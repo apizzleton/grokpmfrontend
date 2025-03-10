@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { 
   Box, 
   TextField, 
@@ -27,7 +27,7 @@ import PropertyCard from '../components/PropertyCard';
 import { useSnackbar } from 'notistack';
 
 const RentalsProperties = () => {
-  const { state, updateData, setState, refreshData } = useContext(AppContext);
+  const { state, modifyData, setState, fetchData } = useContext(AppContext);
   const { enqueueSnackbar } = useSnackbar();
   const [filter, setFilter] = useState('all');
   const [sortOrder, setSortOrder] = useState('asc');
@@ -39,6 +39,7 @@ const RentalsProperties = () => {
     property_type: 'residential',
     status: 'active',
     value: '',
+    owner_id: null,
     addresses: [{
       street: '',
       city: '',
@@ -47,6 +48,27 @@ const RentalsProperties = () => {
       is_primary: true
     }]
   });
+  const [filterLocation, setFilterLocation] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+
+  useEffect(() => {
+    loadProperties();
+  }, []);
+
+  const loadProperties = async () => {
+    const data = await fetchData('properties');
+    if (data) {
+      setState(prev => ({ ...prev, properties: data }));
+    }
+  };
+
+  const handleFilterLocationChange = (e) => {
+    setFilterLocation(e.target.value);
+  };
+
+  const handleSortChange = (e) => {
+    setSortBy(e.target.value);
+  };
 
   const handleClickOpen = (property = null) => {
     if (property) {
@@ -56,6 +78,7 @@ const RentalsProperties = () => {
         property_type: property.property_type || 'residential',
         status: property.status || 'active',
         value: property.value || '',
+        owner_id: property.owner_id || null,
         addresses: property.addresses?.length > 0 
           ? property.addresses.map(addr => ({
               id: addr.id,
@@ -80,6 +103,7 @@ const RentalsProperties = () => {
         property_type: 'residential',
         status: 'active',
         value: '',
+        owner_id: null,
         addresses: [{
           street: '',
           city: '',
@@ -181,14 +205,33 @@ const RentalsProperties = () => {
         return;
       }
 
-      if (editProperty) {
-        await updateData(`properties/${editProperty.id}`, formData, 'put');
-        enqueueSnackbar('Property updated successfully', { variant: 'success' });
-      } else {
-        await updateData('properties', formData, 'post');
-        enqueueSnackbar('Property added successfully', { variant: 'success' });
+      // Prepare data for submission
+      const dataToSubmit = {
+        ...formData,
+        value: formData.value === '' ? 0 : parseFloat(formData.value),
+        owner_id: formData.owner_id || null,
+        addresses: formData.addresses.map(addr => ({
+          ...addr,
+          street: addr.street.trim(),
+          city: addr.city.trim(),
+          state: addr.state.trim(),
+          zip: addr.zip.trim()
+        }))
+      };
+
+      console.log('Submitting property data:', dataToSubmit);
+
+      const success = await modifyData(
+        editProperty ? 'PUT' : 'POST',
+        `properties${editProperty ? `/${editProperty.id}` : ''}`,
+        dataToSubmit
+      );
+
+      if (success) {
+        enqueueSnackbar(`Property ${editProperty ? 'updated' : 'added'} successfully`, { variant: 'success' });
+        handleClose();
+        loadProperties();
       }
-      handleClose();
     } catch (error) {
       console.error('Error saving property:', error);
       enqueueSnackbar(error.message || 'Failed to save property', { variant: 'error' });
@@ -198,50 +241,73 @@ const RentalsProperties = () => {
   const handleDelete = async (propertyId) => {
     try {
       setIsDeleting(true);
-      console.log(`Attempting to delete property with ID: ${propertyId}`);
+      const success = await modifyData('DELETE', `properties/${propertyId}`);
       
-      // Manually update the UI first for better UX
-      const updatedProperties = state.properties.filter(p => p.id !== propertyId);
-      setState(prev => ({
-        ...prev,
-        properties: updatedProperties
-      }));
-      
-      await updateData(`properties/${propertyId}`, null, 'delete');
-      enqueueSnackbar('Property deleted successfully', { variant: 'success' });
+      if (success) {
+        setState(prev => ({
+          ...prev,
+          properties: prev.properties.filter(p => p.id !== propertyId)
+        }));
+        enqueueSnackbar('Property deleted successfully', { variant: 'success' });
+      }
     } catch (error) {
       console.error('Error deleting property:', error);
       enqueueSnackbar(error.message || 'Failed to delete property', { variant: 'error' });
-      
-      // Refresh data to restore the UI if deletion failed
-      refreshData();
+      loadProperties(); // Refresh data if deletion failed
     } finally {
       setIsDeleting(false);
     }
   };
 
   const filteredProperties = state.properties
+    .filter(property => 
+      !filterLocation || 
+      property.addresses.some(addr => 
+        addr.city.toLowerCase().includes(filterLocation.toLowerCase()) ||
+        addr.street.toLowerCase().includes(filterLocation.toLowerCase()) ||
+        addr.state.toLowerCase().includes(filterLocation.toLowerCase()) ||
+        addr.zip.toLowerCase().includes(filterLocation.toLowerCase())
+      )
+    )
     .filter(property => {
       if (filter === 'all') return true;
       return property.status === filter;
     })
     .sort((a, b) => {
-      const aName = a.name?.toLowerCase() || '';
-      const bName = b.name?.toLowerCase() || '';
-      return sortOrder === 'asc' ? aName.localeCompare(bName) : bName.localeCompare(aName);
+      switch (sortBy) {
+        case 'value':
+          return (parseFloat(a.value) || 0) - (parseFloat(b.value) || 0);
+        case 'rent':
+          return (parseFloat(a.rent) || 0) - (parseFloat(b.rent) || 0);
+        case 'name':
+          const aName = a.name?.toLowerCase() || '';
+          const bName = b.name?.toLowerCase() || '';
+          return sortOrder === 'asc' ? aName.localeCompare(bName) : bName.localeCompare(aName);
+        default:
+          return 0;
+      }
     });
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4">Properties</Typography>
-        <Box>
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" gutterBottom>Properties</Typography>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <TextField
+            label="Search Properties"
+            value={filterLocation}
+            onChange={handleFilterLocationChange}
+            size="small"
+            sx={{ flexGrow: 1 }}
+            placeholder="Search by address, city, state, or ZIP..."
+          />
           <TextField
             select
-            size="small"
+            label="Status"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            sx={{ mr: 2, minWidth: 120 }}
+            size="small"
+            sx={{ minWidth: 120 }}
           >
             <MenuItem value="all">All Properties</MenuItem>
             <MenuItem value="active">Active</MenuItem>
@@ -249,14 +315,24 @@ const RentalsProperties = () => {
           </TextField>
           <TextField
             select
+            label="Sort By"
+            value={sortBy}
+            onChange={handleSortChange}
             size="small"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            sx={{ mr: 2, minWidth: 120 }}
+            sx={{ minWidth: 150 }}
           >
-            <MenuItem value="asc">Name A-Z</MenuItem>
-            <MenuItem value="desc">Name Z-A</MenuItem>
+            <MenuItem value="name">Name {sortOrder === 'asc' ? '(A-Z)' : '(Z-A)'}</MenuItem>
+            <MenuItem value="value">Property Value</MenuItem>
+            <MenuItem value="rent">Rent Amount</MenuItem>
           </TextField>
+          {sortBy === 'name' && (
+            <IconButton 
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              size="small"
+            >
+              {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
+            </IconButton>
+          )}
           <Button
             variant="contained"
             onClick={() => handleClickOpen()}
@@ -348,9 +424,7 @@ const RentalsProperties = () => {
                 value={formData.value}
                 onChange={handleChange}
                 fullWidth
-                InputProps={{
-                  startAdornment: <Typography>$</Typography>
-                }}
+                inputProps={{ min: 0, step: "0.01" }}
               />
             </Grid>
           </Grid>
