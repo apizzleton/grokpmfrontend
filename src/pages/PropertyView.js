@@ -22,7 +22,11 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  MenuItem
+  MenuItem,
+  CardMedia,
+  IconButton,
+  ImageList,
+  ImageListItem
 } from '@mui/material';
 import AppContext from '../context/AppContext';
 import { useSnackbar } from 'notistack';
@@ -35,6 +39,10 @@ import ApartmentIcon from '@mui/icons-material/Apartment';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import HandymanIcon from '@mui/icons-material/Handyman';
 import AddIcon from '@mui/icons-material/Add';
+import PhotoIcon from '@mui/icons-material/Photo';
+import EditIcon from '@mui/icons-material/Edit';
+import PhotoUpload from '../components/PhotoUpload';
+import StarIcon from '@mui/icons-material/Star';
 
 // Tab Panel Component
 function TabPanel(props) {
@@ -78,6 +86,10 @@ const PropertyView = () => {
     unit_id: '',
     reported_date: new Date().toISOString().split('T')[0]
   });
+  const [photoDialog, setPhotoDialog] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [photoEditMode, setPhotoEditMode] = useState(false);
+  const [photos, setPhotos] = useState([]);
 
   useEffect(() => {
     loadProperty();
@@ -97,6 +109,7 @@ const PropertyView = () => {
         if (foundProperty) {
           console.log('Found property:', foundProperty);
           setProperty(foundProperty);
+          setPhotos(foundProperty.photos || []);
           
           // Load related data
           loadRelatedData(foundProperty);
@@ -182,6 +195,13 @@ const PropertyView = () => {
           unit_number: units.length > 0 ? units[0].unit_number : 'N/A'
         }
       ]);
+      
+      // Handle property photos
+      if (propertyData.photos && Array.isArray(propertyData.photos)) {
+        console.log('Property photos:', propertyData.photos);
+      } else {
+        console.log('No photos available for this property');
+      }
     } catch (error) {
       console.error('Error loading related data:', error);
     }
@@ -209,6 +229,42 @@ const PropertyView = () => {
       currency: 'USD',
       maximumFractionDigits: 0
     }).format(value);
+  };
+  
+  const handlePhotoClick = (photo) => {
+    setSelectedPhoto(photo);
+    setPhotoDialog(true);
+  };
+  
+  const handlePhotoDialogClose = () => {
+    setPhotoDialog(false);
+    setSelectedPhoto(null);
+    setPhotoEditMode(false);
+  };
+  
+  const handlePhotosChange = async (updatedPhotos) => {
+    try {
+      // Update property with new photos
+      const updatedProperty = {
+        ...property,
+        photos: updatedPhotos
+      };
+      
+      const success = await modifyData(
+        'PUT',
+        `properties/${property.id}`,
+        updatedProperty
+      );
+      
+      if (success) {
+        setProperty(updatedProperty);
+        enqueueSnackbar('Photos updated successfully', { variant: 'success' });
+        setPhotoEditMode(false);
+      }
+    } catch (error) {
+      console.error('Error updating photos:', error);
+      enqueueSnackbar('Failed to update photos', { variant: 'error' });
+    }
   };
 
   const handleMaintenanceDialogOpen = () => {
@@ -360,6 +416,7 @@ const PropertyView = () => {
             <Tab label="Tenants" icon={<PersonIcon />} iconPosition="start" />
             <Tab label="Financials" icon={<ReceiptIcon />} iconPosition="start" />
             <Tab label="Maintenance" icon={<HandymanIcon />} iconPosition="start" />
+            <Tab label="Photos" icon={<PhotoIcon />} iconPosition="start" />
           </Tabs>
         </Box>
 
@@ -562,6 +619,95 @@ const PropertyView = () => {
             <Typography variant="body1" color="text.secondary">No maintenance requests found for this property</Typography>
           )}
         </TabPanel>
+
+        {/* Photos Tab */}
+        <TabPanel value={tabValue} index={5}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+            <Typography variant="h6">Photos</Typography>
+            <Button 
+              variant="contained" 
+              startIcon={photoEditMode ? null : <EditIcon />}
+              onClick={() => setPhotoEditMode(!photoEditMode)}
+            >
+              {photoEditMode ? 'Done Editing' : 'Edit Photos'}
+            </Button>
+          </Box>
+          
+          {photoEditMode ? (
+            <PhotoUpload 
+              entityType="property"
+              entityId={property.id}
+              photos={property.photos || []}
+              onPhotosChange={handlePhotosChange}
+              maxPhotos={10}
+              allowMainPhoto={true}
+            />
+          ) : (
+            property.photos && property.photos.length > 0 ? (
+              <Grid container spacing={2}>
+                {property.photos.map((photo, index) => (
+                  <Grid item xs={12} sm={6} md={4} key={index}>
+                    <Paper 
+                      elevation={3}
+                      sx={{ 
+                        position: 'relative',
+                        height: 200,
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        '&:hover': { opacity: 0.9 }
+                      }}
+                      onClick={() => handlePhotoClick(photo)}
+                    >
+                      <Box
+                        component="img"
+                        src={photo.url}
+                        alt={photo.name || `Photo ${index + 1}`}
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                      {photo.is_main && (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            top: 8,
+                            left: 8,
+                            bgcolor: 'primary.main',
+                            color: 'white',
+                            borderRadius: 1,
+                            px: 1,
+                            py: 0.5,
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          Main Photo
+                        </Box>
+                      )}
+                    </Paper>
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <PhotoIcon sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.5, mb: 2 }} />
+                <Typography variant="body1" color="text.secondary" gutterBottom>
+                  No photos available for this property
+                </Typography>
+                <Button 
+                  variant="contained" 
+                  startIcon={<AddIcon />}
+                  onClick={() => setPhotoEditMode(true)}
+                  sx={{ mt: 2 }}
+                >
+                  Add Photos
+                </Button>
+              </Box>
+            )
+          )}
+        </TabPanel>
       </Box>
 
       {/* Maintenance Request Dialog */}
@@ -634,6 +780,82 @@ const PropertyView = () => {
         <DialogActions>
           <Button onClick={handleMaintenanceDialogClose}>Cancel</Button>
           <Button onClick={handleMaintenanceSubmit} variant="contained">Submit</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Photo Dialog */}
+      <Dialog open={photoDialog} onClose={handlePhotoDialogClose} maxWidth="md" fullWidth>
+        <DialogTitle>
+          {selectedPhoto?.name || 'Property Photo'}
+          {selectedPhoto?.is_main && (
+            <Chip 
+              label="Main Photo" 
+              color="primary" 
+              size="small" 
+              sx={{ ml: 1 }}
+            />
+          )}
+        </DialogTitle>
+        <DialogContent>
+          {selectedPhoto && (
+            <Box sx={{ textAlign: 'center' }}>
+              <Box
+                component="img"
+                src={selectedPhoto.url}
+                alt={selectedPhoto.name || 'Property Photo'}
+                sx={{
+                  maxWidth: '100%',
+                  maxHeight: '70vh',
+                  objectFit: 'contain'
+                }}
+              />
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  {selectedPhoto.name || 'Unnamed photo'}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {selectedPhoto && !selectedPhoto.is_main && (
+            <Button 
+              onClick={() => {
+                // Create updated photos array with this photo as main
+                const updatedPhotos = property.photos.map(photo => ({
+                  ...photo,
+                  is_main: photo.id === selectedPhoto.id
+                }));
+                
+                handlePhotosChange(updatedPhotos);
+                handlePhotoDialogClose();
+              }}
+              startIcon={<StarIcon />}
+              color="primary"
+            >
+              Set as Main Photo
+            </Button>
+          )}
+          <Button 
+            onClick={() => {
+              // Create updated photos array without this photo
+              if (selectedPhoto) {
+                const updatedPhotos = property.photos.filter(photo => photo.id !== selectedPhoto.id);
+                
+                // If we deleted the main photo and have other photos, make the first one main
+                if (selectedPhoto.is_main && updatedPhotos.length > 0) {
+                  updatedPhotos[0].is_main = true;
+                }
+                
+                handlePhotosChange(updatedPhotos);
+              }
+              handlePhotoDialogClose();
+            }}
+            color="error"
+          >
+            Delete
+          </Button>
+          <Button onClick={handlePhotoDialogClose}>Close</Button>
         </DialogActions>
       </Dialog>
     </Container>

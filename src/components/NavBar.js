@@ -20,6 +20,9 @@ import GroupsIcon from "@mui/icons-material/Groups";
 import BusinessIcon from "@mui/icons-material/Business";
 import PersonIcon from "@mui/icons-material/Person";
 import ArticleIcon from '@mui/icons-material/Article';
+import BuildIcon from '@mui/icons-material/Build';
+import PaymentIcon from '@mui/icons-material/Payment';
+import SettingsIcon from '@mui/icons-material/Settings';
 import AppContext from "../context/AppContext";
 
 const NavBar = () => {
@@ -41,9 +44,11 @@ const NavBar = () => {
     { text: "Tenants", path: "/people/tenants", icon: <PeopleIcon /> },
     { text: "Owners", path: "/people/owners", icon: <PersonIcon /> },
     { text: "Board Members", path: "/people/board-members", icon: <GroupsIcon /> },
+    { text: "Maintenance", path: "/maintenance", icon: <BuildIcon /> },
     { text: "Accounting", path: "/accounting", icon: <AccountBalanceIcon /> },
     { text: "Reports", path: "/reports", icon: <AssessmentIcon /> },
     { text: "Associations", path: "/associations/associations", icon: <ApartmentIcon /> },
+    { text: "Settings", path: "/settings", icon: <SettingsIcon /> },
   ];
 
   const NavContent = () => (
@@ -165,6 +170,7 @@ const NavBar = () => {
             color: "#ecf0f1",
             borderRight: "none",
             boxShadow: "4px 0 10px rgba(0, 0, 0, 0.1)",
+            position: "static"
           },
         }}
       >

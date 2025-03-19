@@ -14,6 +14,7 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 
 function Reports() {
   const navigate = useNavigate();
@@ -24,6 +25,13 @@ function Reports() {
       description: 'View a comprehensive rent roll report for all properties and units.',
       icon: <ReceiptLongIcon fontSize="large" color="primary" />,
       path: '/reports/rent-roll'
+    },
+    {
+      title: 'General Ledger',
+      description: 'View and manage all financial transactions across your properties.',
+      icon: <AccountBalanceIcon fontSize="large" color="primary" />,
+      path: '/reports/general-ledger',
+      disabled: false
     },
     {
       title: 'Financial Summary',
@@ -43,8 +51,8 @@ function Reports() {
       title: 'Maintenance Report',
       description: 'View maintenance request statistics and trends.',
       icon: <AssessmentIcon fontSize="large" color="primary" />,
-      path: '/reports',
-      disabled: true
+      path: '/reports/maintenance',
+      disabled: false
     }
   ];
 

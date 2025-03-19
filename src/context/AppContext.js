@@ -115,6 +115,8 @@ export const AppProvider = ({ children }) => {
         return endpoint.includes('/') ? null : [];
       } else if (endpoint.includes('leases')) {
         return endpoint.includes('/') ? null : [];
+      } else if (endpoint.includes('maintenance')) {
+        return endpoint.includes('/') ? null : [];
       }
       return null;
     } finally {

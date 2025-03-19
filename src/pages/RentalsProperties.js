@@ -17,7 +17,8 @@ import {
   ListItemSecondaryAction,
   Chip,
   CircularProgress,
-  Container
+  Container,
+  Divider
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
@@ -25,6 +26,7 @@ import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import AppContext from '../context/AppContext';
 import PropertyCard from '../components/PropertyCard';
+import PhotoUpload from '../components/PhotoUpload';
 import { useSnackbar } from 'notistack';
 import SearchFilterSort from '../components/SearchFilterSort';
 
@@ -48,7 +50,8 @@ const RentalsProperties = () => {
       state: '',
       zip: '',
       is_primary: true
-    }]
+    }],
+    photos: []
   });
   const [filterLocation, setFilterLocation] = useState('');
   const [sortBy, setSortBy] = useState('name');
@@ -97,7 +100,8 @@ const RentalsProperties = () => {
               state: '',
               zip: '',
               is_primary: true
-            }]
+            }],
+        photos: property.photos || []
       });
     } else {
       setEditProperty(null);
@@ -113,7 +117,8 @@ const RentalsProperties = () => {
           state: '',
           zip: '',
           is_primary: true
-        }]
+        }],
+        photos: []
       });
     }
     setOpen(true);
@@ -184,6 +189,13 @@ const RentalsProperties = () => {
     });
   };
 
+  const handlePhotosChange = (photos) => {
+    setFormData(prev => ({
+      ...prev,
+      photos
+    }));
+  };
+
   const handleSave = async () => {
     try {
       // Validate required fields
@@ -224,7 +236,8 @@ const RentalsProperties = () => {
           city: addr.city.trim(),
           state: addr.state.trim(),
           zip: addr.zip.trim()
-        }))
+        })),
+        photos: formData.photos
       };
 
       console.log('Submitting property data:', dataToSubmit);
@@ -481,6 +494,16 @@ const RentalsProperties = () => {
           >
             Add Address
           </Button>
+
+          <Divider sx={{ my: 3 }} />
+          <PhotoUpload 
+            entityType="property"
+            entityId={editProperty?.id}
+            photos={formData.photos}
+            onPhotosChange={handlePhotosChange}
+            maxPhotos={10}
+            allowMainPhoto={true}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>

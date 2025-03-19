@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  CardMedia
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -28,6 +29,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import BusinessIcon from '@mui/icons-material/Business';
 import FactoryIcon from '@mui/icons-material/Factory';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import PhotoIcon from '@mui/icons-material/Photo';
 import { useSnackbar } from 'notistack';
 import AppContext from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -79,6 +81,9 @@ const PropertyCard = ({ property, onDelete, onEdit }) => {
     setDeleteDialogOpen(false);
   };
 
+  // Find main photo if it exists
+  const mainPhoto = property.photos?.find(photo => photo.is_main);
+
   return (
     <>
       <Card 
@@ -91,6 +96,35 @@ const PropertyCard = ({ property, onDelete, onEdit }) => {
           '&:hover': { boxShadow: 6 }
         }}
       >
+        {mainPhoto ? (
+          <CardMedia
+            component="img"
+            height="160"
+            image={mainPhoto.url}
+            alt={property.name}
+            sx={{ 
+              cursor: 'pointer',
+              '&:hover': { opacity: 0.9 }
+            }}
+            onClick={() => navigate(`/rentals/properties/${property.id}`)}
+          />
+        ) : (
+          <Box 
+            sx={{ 
+              height: 160, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              backgroundColor: 'action.hover',
+              cursor: 'pointer',
+              '&:hover': { opacity: 0.9 }
+            }}
+            onClick={() => navigate(`/rentals/properties/${property.id}`)}
+          >
+            <PhotoIcon sx={{ fontSize: 60, color: 'text.secondary', opacity: 0.5 }} />
+          </Box>
+        )}
+        
         <CardContent sx={{ flexGrow: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             {getPropertyTypeIcon(property.property_type)}
